@@ -4,6 +4,15 @@ Two self-contained static projects from a cosmic-ray dosimetry campaign flown wi
 a **Timepix2** silicon pixel detector. No framework, no build step, no server-side
 code — open either folder's entry page and it runs.
 
+## This is a snapshot
+
+These folders are maintained in the pahoclock.com site repo and copied here. The live
+pages are at [pahoclock.com/flights](https://pahoclock.com/flights/) and
+[pahoclock.com/3d/film.html](https://pahoclock.com/3d/film.html).
+
+Changes made here do not reach the live site and are overwritten on the next sync —
+so treat this repo as read-only unless you have agreed otherwise.
+
 ## `flights/` — dose replays
 
 | | |
