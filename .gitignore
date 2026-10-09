@@ -1,0 +1,15 @@
+# Carried over from the site repo. The reasoning holds anywhere this is published:
+# a committed binary is a published one, and cannot be taken back out of history
+# without rewriting every commit after it.
+
+# Audio auditioned against the film but not cleared for publication.
+# A cleared cue belongs in 3d/assets/ as a short encode; see SCORE_FILE in
+# 3d/assets/film.js.
+3d/music/
+
+# Renders of the film, and the packages 3d/tools/render-film.mjs needs to make
+# one. The film itself ships as 3d/film.html; a rendered file is for sending to
+# people, not for committing.
+3d/out/
+3d/tools/node_modules/
+3d/tools/package-lock.json
