@@ -10,7 +10,9 @@ own index:
 | `hardpix.html` | Scroll-driven exploded view (older, see *Known bugs*) | `HardPix_SWIMMR.glb` |
 | `assembly.html` | Scroll-driven exploded view of an earlier assembly | `t2m_assembly.glb` |
 
-Live at `https://opavlas.github.io/tpx2/3d/` (GitHub Pages serves the repo root).
+**Not published.** These pages are served from nowhere: the models and the
+score are not cleared for public distribution, so this repo stays private. Run
+them locally (see below).
 
 `assembly.html` **was** `index.html` until the index became a landing page. The
 repo root index links `/3d/` but nothing links the individual pages, so this index

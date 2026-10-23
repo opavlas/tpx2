@@ -4,18 +4,18 @@ Two self-contained static projects from a cosmic-ray dosimetry campaign flown wi
 a **Timepix2** silicon pixel detector. No framework, no build step, no server-side
 code — open either folder's entry page and it runs.
 
-**Live at [opavlas.github.io/tpx2](https://opavlas.github.io/tpx2/).**
+## Private archive — keep it that way
 
-GitHub Pages serves this repo's root directly from `main`, so a push is live within
-about a minute. There is no Actions workflow and nothing is built on the server.
+**This repo is not published and must stay private.** It holds the HardPix CAD
+models (163 MB of `.glb`) and the film score, neither of which is cleared for
+public distribution.
 
-| | |
-|---|---|
-| [Dose Field at 11 km](https://opavlas.github.io/tpx2/flights/) | three airliner legs over the CARI-7A dose field at cruise altitude |
-| [The Pfotzer Maximum](https://opavlas.github.io/tpx2/flights/balloons.html) | two stratospheric balloon flights, dose rate against altitude |
-| [HardPix in 3D](https://opavlas.github.io/tpx2/3d/) | the product film and two exploded views |
+The flight pages *are* published, from a separate repo with its own history:
+**[opavlas.github.io/tpx2](https://opavlas.github.io/tpx2/)**. A fresh history was
+the point — dropping `3d/` in a commit here would leave the models and the score
+in this repo's history, fetchable by anyone, the moment it went public.
 
-`index.html` at the root is the way in and links all three. It is deliberately
+`index.html` at the root links both folders for local browsing. It is deliberately
 static — no canvas, no data bundle — so the heavy pages are only paid for when
 someone asks for one.
 
