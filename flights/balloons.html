@@ -106,6 +106,10 @@ input[type=range]{flex:1; min-width:12rem; accent-color:var(--amber); background
 .hint{font-family:"IBM Plex Mono",monospace; font-size:.62rem; color:var(--ink-3)}
 
 /* ── frame inspector ────────────────────────────────────────────────────── */
+/* The matrix is read against the profile that selected it, so the pair is one
+   object: close the column gap between them to a hair. The wrap's 1.5rem is
+   right for unrelated sections and wrong for these two. */
+.traces + .insp{margin-top:calc(.5rem - 1.5rem)}
 .insp{background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
   border-top:2px solid var(--m,var(--amber)); padding:.9rem 1rem;
   display:flex; flex-direction:column; gap:.8rem}
@@ -181,7 +185,6 @@ summary:hover{color:var(--amber)}
   </div>
 
   <section class="traces" id="traces"></section>
-  <p class="hint">Drag across a profile to inspect the detector frames from that interval.</p>
   <section class="insp" id="insp" hidden></section>
 
   <section class="ledger">
@@ -568,6 +571,7 @@ summary:hover{color:var(--amber)}
   /* ── frame inspector (same contract as the airliner page) ───────────────── */
   var inspEl = document.getElementById("insp");
   var SELR = null, INT = null, PICK = -1, TRAIL_H = 6 / 60, lastSig = "";
+  var BRUSHING = false;           // a profile is under the pointer right now
 
   function integrate(wins) {
     var idx = new Int32Array(65536), cls = [], nfr = 0, i, j, w, c, k;
@@ -669,7 +673,15 @@ summary:hover{color:var(--amber)}
 
   function renderInspector(force) {
     var units = unitsNow();
-    if (!units.length) { inspEl.hidden = true; lastSig = ""; return; }
+    /* A press on a profile opens a zero-width range, and the replay loop renders
+       straight through it. Collapsing the inspector for the length of the drag
+       shortens the document, the browser clamps the scroll, and the matrix the
+       reader was looking at slides out from under the pointer. Hold the last
+       frame on screen instead and let pointerup replace it. */
+    if (!units.length) {
+      if (BRUSHING && !inspEl.hidden) return;
+      inspEl.hidden = true; lastSig = ""; return;
+    }
     var sig = (SELR ? "R|" : "F|") + units[0].sig;
     if (sig === lastSig && !force) return;
     lastSig = sig;
@@ -727,7 +739,7 @@ summary:hover{color:var(--amber)}
   MS.forEach(function (m) {
     var cvs = m.tr.cv, dragging = false, anchor = 0;
     cvs.addEventListener("pointerdown", function (ev) {
-      dragging = true; anchor = timeAt(m, ev);
+      dragging = true; BRUSHING = true; anchor = timeAt(m, ev);
       if (cvs.setPointerCapture) cvs.setPointerCapture(ev.pointerId);
       SELR = { key: m.key, t0: anchor, t1: anchor }; drawTraces();
     });
@@ -739,7 +751,7 @@ summary:hover{color:var(--amber)}
     });
     cvs.addEventListener("pointerup", function (ev) {
       if (!dragging) return;
-      dragging = false;
+      dragging = false; BRUSHING = false;
       var t = timeAt(m, ev), a = Math.min(anchor, t), b = Math.max(anchor, t);
       if (b - a < 0.01) { a = Math.max(0, a - 0.03); b = b + 0.03; }
       SELR = { key: m.key, t0: a, t1: b }; PICK = -1;

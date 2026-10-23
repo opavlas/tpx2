@@ -132,6 +132,10 @@ input[type=range]{flex:1; min-width:12rem; accent-color:var(--amber);
 /* ── frame inspector ────────────────────────────────────────────────────── */
 .trace canvas{cursor:crosshair}
 .hint{font-family:"IBM Plex Mono",monospace; font-size:.62rem; color:var(--ink-3)}
+/* The matrix is read against the profile that selected it, so the pair is one
+   object: close the column gap between them to a hair. The wrap's 1.5rem is
+   right for unrelated sections and wrong for these two. */
+.traces + .insp{margin-top:calc(.5rem - 1.5rem)}
 .insp{background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
   border-top:2px solid var(--leg,var(--amber)); padding:.9rem 1rem;
   display:flex; flex-direction:column; gap:.8rem}
@@ -230,7 +234,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   </div>
 
   <section class="traces" id="traces"></section>
-  <p class="hint">Drag across a profile to inspect the detector frames from that interval.</p>
   <section class="insp" id="insp" hidden></section>
 
   <section class="ledger">
@@ -1016,16 +1019,26 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
 
   var TRAIL_H = 12 / 60;          // trailing interval the follow view integrates
   var lastSig = "";
+  var BRUSHING = false;           // a profile is under the pointer right now
+  var ZOOMED = true;              // survives a re-render; the reader chose it
 
   function renderInspector(force) {
     var units = unitsNow();
-    if (!units.length) { inspEl.hidden = true; lastSig = ""; return; }
+    /* A press on a profile opens a zero-width range, and the replay loop renders
+       straight through it. Collapsing the inspector for the length of the drag
+       shortens the document, the browser clamps the scroll, and the matrix the
+       reader was looking at slides out from under the pointer. Hold the last
+       frame on screen instead and let pointerup replace it. */
+    if (!units.length) {
+      if (BRUSHING && !inspEl.hidden) return;
+      inspEl.hidden = true; lastSig = ""; return;
+    }
     var sig = (SELR ? "R|" : "F|") + units.map(function (u) { return u.sig; }).join(",");
     if (sig === lastSig && !force) { return; }
     lastSig = sig;
 
     inspEl.hidden = false;
-    inspEl.className = "insp zoomed";
+    inspEl.className = ZOOMED ? "insp zoomed" : "insp";
     inspEl.style.setProperty("--leg", units[0].leg.col);
 
     {
@@ -1067,7 +1080,8 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
           }
         }
       }
-      if (hit < 0) { inspEl.classList.toggle("zoomed"); return; }
+      if (hit < 0) { ZOOMED = !ZOOMED;
+                     inspEl.classList.toggle("zoomed", ZOOMED); return; }
       PICK = (PICK === hit) ? -1 : hit;
       drawIntegrated(cvs);
       paintStats();
@@ -1099,7 +1113,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   legs.forEach(function (L) {
     var cvs = L.trace.cv, dragging = false, anchor = 0;
     cvs.addEventListener("pointerdown", function (ev) {
-      dragging = true; anchor = traceTimeAt(L, ev);
+      dragging = true; BRUSHING = true; anchor = traceTimeAt(L, ev);
       if (cvs.setPointerCapture) cvs.setPointerCapture(ev.pointerId);
       SELR = { key: L.key, t0: anchor, t1: anchor };
       drawTraces();
@@ -1112,7 +1126,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     });
     cvs.addEventListener("pointerup", function (ev) {
       if (!dragging) return;
-      dragging = false;
+      dragging = false; BRUSHING = false;
       var t = traceTimeAt(L, ev);
       var a = Math.min(anchor, t), b = Math.max(anchor, t);
       // a plain click is a point, not a range: open a window around it instead
