@@ -5,8 +5,8 @@ silicon pixel detector.
 
 | | |
 |---|---|
-| [**Dose Field at 11 km**](https://pahoclock.com/flights/) | three airliner legs replayed over the CARI-7A simulated dose field at cruise altitude, measured against model |
-| [**The Pfotzer Maximum**](https://pahoclock.com/flights/balloons.html) | two stratospheric balloon flights, dose rate against altitude through the Regener–Pfotzer maximum |
+| [**Dose Field at 11 km**](https://opavlas.github.io/tpx2/flights/) | three airliner legs replayed over the CARI-7A simulated dose field at cruise altitude, measured against model |
+| [**The Pfotzer Maximum**](https://opavlas.github.io/tpx2/flights/balloons.html) | two stratospheric balloon flights, dose rate against altitude through the Regener–Pfotzer maximum |
 
 ## Contents
 

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive pages from a cosmic-ray dosimetry campaign flown with a Timepix2 silicon pixel detector: dose replays at cruise altitude, the Regener-Pfotzer maximum from balloon flights, and a 3D film of the HardPix spectrometer.">
+<title>Timepix2 — Flight Pages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ───────────────────────────────────────────────────────────────────────────
+   The way in. Deliberately static and instant: no canvas, no data bundle —
+   the heavy pages are one click away and should not be paid for here.
+
+   Single-theme dark, matching flights/index.html exactly. Every colour is
+   painted so nothing is inherited from the viewer's theme.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root{
+  --ground:#070B10; --ground-2:#0B1016;
+  --panel:#121A24;  --panel-2:#0F161E;
+  --rule:#22303D;   --rule-soft:#1A2531;
+  --ink:#E6EDF4;    --ink-2:#93A6B8; --ink-3:#64788A;
+  --amber:#E0A33B;  --amber-ink:#F3C85F; --amber-dim:#8C6520;
+  --teal:#2FA596;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.5;
+}
+h1,h2,h3{font-family:Archivo,"Arial Narrow",system-ui,sans-serif;
+  margin:0; letter-spacing:-.015em; text-wrap:balance}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+  font-variant-numeric:tabular-nums}
+
+.wrap{max-width:60rem; margin:0 auto; padding:3.5rem 1.5rem 4rem;
+  display:flex; flex-direction:column; gap:2.5rem}
+
+/* ── masthead ───────────────────────────────────────────────────────────── */
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:500;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--amber)}
+h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05;
+  margin-top:.5rem}
+.standfirst{color:var(--ink-2); max-width:44rem; margin-top:.9rem;
+  font-size:1.02rem}
+.standfirst strong{color:var(--ink); font-weight:600}
+
+/* ── the cards ──────────────────────────────────────────────────────────── */
+.set{display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(16rem,1fr))}
+.card{display:flex; flex-direction:column; gap:.55rem; text-decoration:none;
+  background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
+  padding:1.2rem 1.25rem 1.35rem; color:inherit;
+  transition:border-color .15s, background .15s, transform .15s}
+.card:hover{border-color:var(--amber-dim); background:var(--panel);
+  transform:translateY(-2px)}
+.card:focus-visible{outline:2px solid var(--amber); outline-offset:3px}
+.kicker{font-family:"IBM Plex Mono",monospace; font-size:.64rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink-3)}
+.card h2{font-size:1.18rem; font-weight:600; color:var(--ink)}
+.card:hover h2{color:var(--amber-ink)}
+.card p{margin:0; color:var(--ink-2); font-size:.9rem; line-height:1.45}
+.card .path{margin-top:auto; padding-top:.7rem; font-family:"IBM Plex Mono",monospace;
+  font-size:.68rem; color:var(--ink-3); letter-spacing:.03em}
+
+/* ── footer ─────────────────────────────────────────────────────────────── */
+footer{border-top:1px solid var(--rule); padding-top:1.3rem; color:var(--ink-3);
+  font-size:.82rem; display:flex; flex-direction:column; gap:.4rem}
+footer a{color:var(--ink-2)}
+footer a:hover{color:var(--amber-ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Timepix2 · Silicon pixel dosimetry</div>
+    <h1>Cosmic rays, measured in flight</h1>
+    <p class="standfirst">
+      Interactive pages from a dosimetry campaign flown with a <strong>Timepix2</strong>
+      silicon pixel detector — airliner legs at cruise altitude, balloon ascents through
+      the stratosphere, and the instrument itself in 3D. Each page replays the real
+      measured dataset against the models it was checked against.
+    </p>
+  </header>
+
+  <main class="set">
+
+    <a class="card" href="flights/">
+      <div class="kicker">Aircraft · 11 km</div>
+      <h2>Dose Field at 11 km</h2>
+      <p>Three airliner legs replayed over CARI-7A's simulated dose field at cruise
+         altitude, measured against model, with the detector frames behind them.</p>
+      <div class="path">flights/</div>
+    </a>
+
+    <a class="card" href="flights/balloons.html">
+      <div class="kicker">Balloons · to 35 km</div>
+      <h2>The Pfotzer Maximum</h2>
+      <p>Two stratospheric balloon flights from the pad through burst, showing the
+         Regener–Pfotzer maximum measured in silicon against PARMA.</p>
+      <div class="path">flights/balloons.html</div>
+    </a>
+
+    <a class="card" href="3d/">
+      <div class="kicker">Instrument · WebGL</div>
+      <h2>HardPix in 3D</h2>
+      <p>A 64-second real-time film of the HardPix spectrometer, ending on real
+         measured particle tracks — plus two scroll-driven exploded views.</p>
+      <div class="path">3d/</div>
+    </a>
+
+  </main>
+
+  <footer>
+    <div>Institute of Experimental and Applied Physics, Czech Technical University in Prague.</div>
+    <div>No cookies, no storage, no analytics. The only external request is to Google Fonts.</div>
+  </footer>
+
+</div>
+</body>
+</html>

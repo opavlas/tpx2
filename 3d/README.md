@@ -10,12 +10,12 @@ own index:
 | `hardpix.html` | Scroll-driven exploded view (older, see *Known bugs*) | `HardPix_SWIMMR.glb` |
 | `assembly.html` | Scroll-driven exploded view of an earlier assembly | `t2m_assembly.glb` |
 
-Live at `https://pahoclock.com/3d/` (GitHub Pages serves the repo root).
+Live at `https://opavlas.github.io/tpx2/3d/` (GitHub Pages serves the repo root).
 
-`assembly.html` **was** `index.html` until the index became a landing page. Nothing
-on the wider site links here — pahoclock.com is the word-clock site, and these
-pages are a separate project sharing the repo — so `/3d/` is the only way in, and
-a link added here is the only thing that makes a page reachable.
+`assembly.html` **was** `index.html` until the index became a landing page. The
+repo root index links `/3d/` but nothing links the individual pages, so this index
+is the only way in — a link added here is the only thing that makes a page
+reachable.
 
 ---
 
