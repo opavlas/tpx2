@@ -156,8 +156,12 @@ input[type=range]{flex:1; min-width:12rem; accent-color:var(--amber);
 .iframe{display:flex; flex-direction:column; gap:.4rem}
 .iframe canvas{display:block; width:100%; aspect-ratio:1; background:#05080C;
   border:1px solid var(--rule); image-rendering:pixelated; cursor:crosshair}
+/* Everything that is read against the sensor shares one column beside it: the
+   species filter on top, because choosing what to show precedes reading what
+   was chosen, and the identified track underneath. */
+.iside{min-width:0; display:flex; flex-direction:column; gap:.9rem}
 .ipick{min-width:0; display:flex; flex-direction:column; gap:.6rem}
-.istats{margin-top:1.1rem; display:flex; flex-direction:column; gap:.6rem;
+.istats{display:flex; flex-direction:column; gap:.6rem;
   min-width:0; overflow-x:auto}
 .istats table{font-size:.68rem}
 .istats th,.istats td{padding:.3rem .45rem}
@@ -1087,7 +1091,8 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
         "</span></div><div class=\"ibody\"><div class=\"iframe\">" +
         "<canvas width=\"256\" height=\"256\"></canvas>" +
         "<div class=\"hint\">Click a track to identify it &middot; click empty sensor to resize</div>" +
-        "</div><div class=\"ipick\"></div></div><div class=\"istats\"></div>";
+        "</div><div class=\"iside\">" +
+        "<div class=\"istats\"></div><div class=\"ipick\"></div></div></div>";
       var cvs = inspEl.querySelector("canvas");
       drawIntegrated(cvs);
       paintStats();
