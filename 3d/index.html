@@ -131,11 +131,10 @@
       font-size: 10px; text-transform: uppercase; letter-spacing: 0.24em; color: var(--dim);
     }
     #barwrap { width: min(300px, 60vw); height: 1px; background: #262626; }
-    /* The mark waits with the reader while the assembly downloads. White
-       chip because the logo is drawn for paper, and its blue would sit at
-       4:1 on this ground -- too thin for the type around the badge. */
-    #loader .brand { height: 46px; width: auto; background: #fff;
-      border-radius: 4px; padding: 6px; box-sizing: border-box; }
+    /* The mark waits with the reader while the assembly downloads. Big enough
+       that the ring of type around the badge is read rather than guessed at;
+       below about 100px it collapses. */
+    #loader .brand { height: 92px; width: auto; }
     #bar { height: 1px; width: 0; background: var(--copper); transition: width .25s ease; }
 
     @media (max-width: 700px) {

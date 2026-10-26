@@ -60,17 +60,17 @@ h1,h2,h3{font-family:Archivo,"Arial Narrow",system-ui,sans-serif;
 /* ── masthead ───────────────────────────────────────────────────────────── */
 .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:500;
   letter-spacing:.2em; text-transform:uppercase; color:var(--amber)}
-/* The institute's mark, on the white field it is drawn for. Its line work is
-   #0074BB, which reads 3.96:1 against this page's ground -- enough for the badge
-   itself, not for the ring of small type around it. The white chip fixes the
-   contrast and keeps the mark inside its identity rules: one decision, not two.
-   The padding is the clear space such marks are supposed to be given. */
+/* The institute's mark, white knocked out so it sits on the ground itself. Its
+   line work is #0074BB, 3.96:1 here -- under the 4.5:1 a body of small text
+   would need, over the 3:1 a graphic needs, which is what settles the size: at
+   56px the ring of type around the badge collapses into mush, and it only comes
+   back somewhere near 100px. Hence 6rem, large enough to be read rather than
+   merely present, and still under the title it stands beside. */
 header{display:flex; align-items:flex-start; justify-content:space-between;
   gap:1.25rem; flex-wrap:wrap}
 .masthead{min-width:0}
-.brand{flex:none; display:block; height:3.5rem; width:auto; background:#fff;
-  border-radius:5px; padding:.45rem; box-sizing:border-box}
-@media (max-width:620px){.brand{height:2.8rem}}
+.brand{flex:none; display:block; height:6rem; width:auto}
+@media (max-width:620px){.brand{height:4rem}}
 h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; margin-top:.4rem}
 
 /* ── the field ──────────────────────────────────────────────────────────── */
