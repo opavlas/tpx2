@@ -60,6 +60,17 @@ h1,h2,h3{font-family:Archivo,"Arial Narrow",system-ui,sans-serif;
 /* ── masthead ───────────────────────────────────────────────────────────── */
 .eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:500;
   letter-spacing:.2em; text-transform:uppercase; color:var(--amber)}
+/* The institute's mark, on the white field it is drawn for. Its line work is
+   #0074BB, which reads 3.96:1 against this page's ground -- enough for the badge
+   itself, not for the ring of small type around it. The white chip fixes the
+   contrast and keeps the mark inside its identity rules: one decision, not two.
+   The padding is the clear space such marks are supposed to be given. */
+header{display:flex; align-items:flex-start; justify-content:space-between;
+  gap:1.25rem; flex-wrap:wrap}
+.masthead{min-width:0}
+.brand{flex:none; display:block; height:3.5rem; width:auto; background:#fff;
+  border-radius:5px; padding:.45rem; box-sizing:border-box}
+@media (max-width:620px){.brand{height:2.8rem}}
 h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; margin-top:.4rem}
 
 /* ── the field ──────────────────────────────────────────────────────────── */
@@ -218,8 +229,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   </nav>
 
   <header>
-    <div class="eyebrow">Timepix2 · 37.5 h of live acquisition</div>
-    <h1>Dose Field at 11 km</h1>
+    <div class="masthead">
+      <div class="eyebrow">Timepix2 · 37.5 h of live acquisition</div>
+      <h1>Dose Field at 11 km</h1>
+    </div>
+    <img class="brand" src="ieap-ctu.png" alt="Institute of Experimental and Applied Physics, Czech Technical University in Prague">
   </header>
 
   <div class="stage">

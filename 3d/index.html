@@ -131,6 +131,11 @@
       font-size: 10px; text-transform: uppercase; letter-spacing: 0.24em; color: var(--dim);
     }
     #barwrap { width: min(300px, 60vw); height: 1px; background: #262626; }
+    /* The mark waits with the reader while the assembly downloads. White
+       chip because the logo is drawn for paper, and its blue would sit at
+       4:1 on this ground -- too thin for the type around the badge. */
+    #loader .brand { height: 46px; width: auto; background: #fff;
+      border-radius: 4px; padding: 6px; box-sizing: border-box; }
     #bar { height: 1px; width: 0; background: var(--copper); transition: width .25s ease; }
 
     @media (max-width: 700px) {
@@ -179,6 +184,7 @@
     <div class="mark">HardPix</div>
     <div id="barwrap"><div id="bar"></div></div>
     <div class="status">Loading — <span id="pct">0</span>%</div>
+    <img class="brand" src="../ieap-ctu.png" alt="Institute of Experimental and Applied Physics, Czech Technical University in Prague">
   </div>
 
   <script type="module" src="./assets/film.js"></script>

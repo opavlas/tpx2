@@ -1,0 +1,5 @@
+# The institute's print masters. CMYK EPS from CorelDRAW, which no browser can
+# display -- ieap-ctu.png is derived from the blue one's embedded preview and is
+# the file the pages actually load. Keeping the masters out of a public repo
+# avoids redistributing brand assets nobody asked us to host.
+*.eps
