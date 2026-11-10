@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="095c1763">
+<meta name="build" content="26ce9884">
 <meta name="build-date" content="2026-11-10">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1131,8 +1131,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
            blocks with NO pixel mask applied, not 20 s Timepix2 windows that were
            masked three ways. */
         (MP && MP.legs.indexOf(units[0].leg.key) >= 0
-          ? units[0].wins.length + " &times; 20 frames of 30 s &middot; 1 block in " +
-            MP.every + " &middot; spatial clustering, no pixel mask"
+          ? units[0].wins.length + " &times; " + units[0].wins[0].nfr +
+            " frames &middot; blocks evenly sampled &middot; spatial clustering per " +
+            "frame, no pixel mask"
           : units[0].wins.length + " &times; " + FR.acc_s + " s sampled every " +
             FR.every_min + " min (" + (FR.duty * 100).toFixed(0) +
             " % duty) &middot; noisy, hot and burst masked") +
@@ -1439,6 +1440,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-10 · 095c1763</p>
+<p class="buildstamp">build 2026-11-10 · 26ce9884</p>
 </body>
 </html>
