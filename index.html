@@ -205,6 +205,10 @@ th:first-child,td:first-child{text-align:left}
 thead th{color:var(--ink-3); font-weight:500; font-size:.62rem;
   letter-spacing:.1em; text-transform:uppercase; border-bottom:1px solid var(--rule)}
 tfoot td{border-bottom:none; border-top:1px solid var(--rule); color:var(--ink)}
+tfoot tr.held td{color:var(--ink-3); border-top:1px solid var(--rule-soft)}
+.tag{font-family:"IBM Plex Mono",monospace; font-size:.56rem; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--ink-3); border:1px solid var(--rule);
+  border-radius:2px; padding:.05rem .3rem; margin-left:.5rem}
 .dot{display:inline-block; width:.55rem; height:.55rem; border-radius:50%;
   margin-right:.45rem; vertical-align:baseline}
 .note{color:var(--ink-2); font-size:.84rem; max-width:72ch}
@@ -444,7 +448,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   var legs = D.legs.map(function (L) {
     var o = Object.create(L);
     o.col = DARK[L.color] || L.color;
-    o.flown = FLOWN[L.key] || "";
+    /* A leg may carry its own flown date (the MiniPIX legs derive it from the
+       acquisition start). FLOWN is the fallback for the legs that predate that. */
+    o.flown = L.flown || FLOWN[L.key] || "";
     o.end = L.track.t[L.track.t.length - 1];
     return o;
   });
@@ -1309,7 +1315,12 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   legs.forEach(function (L) {
     var tr = document.createElement("tr");
     tr.innerHTML =
-      '<td><span class="dot" style="background:' + L.col + '"></span>' + L.short + '</td>' +
+      /* Two instruments share this table. A 300 um MiniPIX and a 500 um Timepix2
+         Lite measure the same quantity against the same model, which is exactly
+         why the ratios are comparable -- but the reader has to be told which is
+         which, or the comparison is being made for them silently. */
+      '<td><span class="dot" style="background:' + L.col + '"></span>' + L.short +
+      (/MiniPIX/.test(L.detector || "") ? '<span class="tag">MiniPIX</span>' : '') + '</td>' +
       '<td>' + L.flown + '</td><td>' + L.span_h.toFixed(2) + ' h</td>' +
       '<td>' + L.meas_uGy.toFixed(2) + ' µGy</td>' +
       '<td>' + L.d5_uGy.toFixed(2) + ' µGy</td>' +
@@ -1317,10 +1328,23 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     L.row = tr;
     tb.appendChild(tr);
   });
-  tf.innerHTML = '<tr><td>All three</td><td>—</td><td>' + D.totals.hours.toFixed(1) +
+  tf.innerHTML = '<tr><td>Three Timepix2 legs</td><td>—</td><td>' + D.totals.hours.toFixed(1) +
     ' h</td><td>' + D.totals.meas_uGy.toFixed(2) + ' µGy</td><td>' +
     D.totals.d5_uGy.toFixed(2) + ' µGy</td><td style="color:var(--amber-ink)">' +
-    D.pooled.ratio_med.toFixed(2) + '</td></tr>';
+    D.pooled.ratio_med.toFixed(2) + '</td></tr>' +
+    /* The fragments sit UNDER the total, dimmed and tagged. They are shown
+       because a measurement that was taken should be visible; they are dimmed
+       because 0.65 h and 2.32 h of coverage do not belong on the same footing
+       as three full legs. A fragment's integral is not a leg dose, so those
+       columns stay blank unless the leg carries its own CARI-7A run. */
+    (D.heldout.length ? D.heldout : [D.heldout]).map(function (h) {
+      return '<tr class="held"><td>' + h.label +
+        '<span class="tag">held out</span></td><td>\u2014</td><td>' +
+        h.span_h.toFixed(2) + ' h</td><td>' +
+        (h.meas_uGy == null ? '\u2014' : h.meas_uGy.toFixed(2) + ' \u00b5Gy') + '</td><td>' +
+        (h.d5_uGy == null ? '\u2014' : h.d5_uGy.toFixed(2) + ' \u00b5Gy') + '</td><td>' +
+        h.ratio.toFixed(2) + '</td></tr>';
+    }).join('');
 
   /* ── caveats — the page states its own limits ──────────────────────────── */
   /* Only the notes that prevent a WRONG READING survive -- the held-out leg, the
@@ -1328,15 +1352,18 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      pool. Everything that merely explained the figure has gone. */
   var reps = (D.repairs || []).length;
   document.getElementById("caveats").innerHTML =
-    "Measured: 500 µm Si · model: CARI-7A D5, ICRU phantom (×0.76 = quantity conversion) · " +
+    "Measured: absorbed dose in Si — Timepix2 Lite 500 µm, MiniPIX 300 µm · " +
+    "model: CARI-7A D5, ICRU phantom (×0.76 = quantity conversion) · " +
     "field 11 km, per-leg solar epoch (" +
     Object.keys(F.epochs).sort().map(function (k) {
       return k + " " + F.epochs[k].mv + " MV";
     }).join(", ") + "), IGRF-2010 cutoffs, 2.5°×5° grid · " +
-    "flown 23 Jan / 10 Feb / 17 Apr 2026, replayed on one clock · " +
+    "flown " + legs.map(function (l) { return l.flown; }).join(" / ") +
+    ", replayed on one clock · " +
     "SYD→LAX absolute rate carries a threshold offset — its ratio pools, its µGy/h does not · " +
-    D.heldout.label + " held out (detector on ~2 h late, ratio " +
-    D.heldout.ratio.toFixed(2) + ") · ADS-B gaps interpolated" +
+    (D.heldout.length ? D.heldout : [D.heldout]).map(function (h) {
+      return h.label + " held out \u2014 " + (h.why || "a fragment");
+    }).join(" \u00b7 ") + " \u00b7 ADS-B gaps interpolated" +
     (reps ? " · 1 dateline position repaired" : "");
 
   /* ── table view ────────────────────────────────────────────────────────── */
