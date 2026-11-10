@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="7788fe4f">
+<meta name="build" content="2188d3d1">
 <meta name="build-date" content="2026-11-10">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1070,7 +1070,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
        emptying out on the ground where the measurement really is near zero. */
     if (SEL === null) return [];
     return visible().map(function (L) {
-      var all = FR.legs[L.key], wins = [], i;
+      /* A leg need not have frame data. The MiniPIX legs are per-pixel Pixet
+         exports with no clustering behind them, so there is nothing for the
+         inspector to show and FR.legs[key] is undefined -- which must read as
+         'no windows', not as a crash that stops the replay loop. */
+      var all = FR.legs[L.key] || [], wins = [], i;
       for (i = 0; i < all.length; i++) {
         if (all[i].t <= T && all[i].t >= T - TRAIL_H) wins.push(all[i]);
       }
@@ -1412,6 +1416,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-10 · 7788fe4f</p>
+<p class="buildstamp">build 2026-11-10 · 2188d3d1</p>
 </body>
 </html>
