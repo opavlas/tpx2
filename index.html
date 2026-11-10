@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="2188d3d1">
+<meta name="build" content="2068f416">
 <meta name="build-date" content="2026-11-10">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -685,7 +685,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     if (!playing && T >= TMAX) T = 0;
     setPlaying(!playing);
   });
-  scrub.addEventListener("input", function () {
+  scrub.addEventListener("input", function (e) {
+    /* Only a real drag scrubs. readouts() writes scrub.value every frame, and any
+       synthetic input event reaching here would set T from the slider and pause the
+       replay -- which is exactly the 'it does not play' symptom. */
+    if (e && e.isTrusted === false) { return; }
     T = scrub.value / 1000 * TMAX; setPlaying(false);
     draw(); drawTraces(); readouts(); renderInspector();
   });
@@ -917,6 +921,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      hot/saturated pixels, burst frames), so what is drawn is what the analysis
      counted -- not the raw file. */
   var FR = window.FRAMES;
+  var MP = FR && FR.minipix;        // which legs came from the MiniPIX chain
   var FRAMP = [[12, 9, 4], [92, 56, 14], [224, 163, 59], [247, 214, 134], [255, 246, 226]];
   var ETOP = 120;                                  // keV/pixel at the top of the ramp
   var inspEl = document.getElementById("insp");
@@ -1121,9 +1126,16 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
         "<div class=\"hd\"><span class=\"t\">" + L.short + " &middot; " +
         units[0].label + "</span><span class=\"s\">" + INT.nfr +
         " frames integrated &middot; " + INT.cls.length + " clusters &middot; " +
-        units[0].wins.length + " &times; " + FR.acc_s + " s sampled every " +
-        FR.every_min + " min (" + (FR.duty * 100).toFixed(0) +
-        " % duty) &middot; noisy, hot and burst masked" +
+        /* The sampling and the masking are per-INSTRUMENT, and saying the wrong
+           one is worse than saying nothing: the MiniPIX legs are 20 x 30 s Pixet
+           blocks with NO pixel mask applied, not 20 s Timepix2 windows that were
+           masked three ways. */
+        (MP && MP.legs.indexOf(units[0].leg.key) >= 0
+          ? units[0].wins.length + " &times; 20 frames of 30 s &middot; 1 block in " +
+            MP.every + " &middot; spatial clustering, no pixel mask"
+          : units[0].wins.length + " &times; " + FR.acc_s + " s sampled every " +
+            FR.every_min + " min (" + (FR.duty * 100).toFixed(0) +
+            " % duty) &middot; noisy, hot and burst masked") +
         (SELR ? " &middot; <button id=\"unsel\">follow replay</button>"
               : " &middot; trailing " + Math.round(TRAIL_H * 60) + " min") +
         "</span></div><div class=\"ibody\"><div class=\"iframe\">" +
@@ -1307,7 +1319,14 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   var last = 0;
   function frame(ts) {
     if (!last) last = ts;
-    var dt = Math.min((ts - last) / 1000, 0.1); last = ts;
+    /* A long frame is a STALL -- bundle parsing on load, a hidden tab, a janky
+       repaint -- and a stall is not replay time. Clamping it to 0.1 s (as this
+       did) still credited every slow frame with 6 minutes of flight, so the
+       timeline burned out during load and the replay sat finished before anyone
+       saw it. Dropping the interval instead costs nothing real: at 60 fps a true
+       frame is 0.017 s, nowhere near the threshold. */
+    var dt = (ts - last) / 1000; last = ts;
+    if (dt > 0.25 || dt < 0) { dt = 0; }
     if (stepZoom(dt)) { draw(); }
     if (playing) {
       T += dt * SPEEDS[si];
@@ -1413,9 +1432,12 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     T = TMAX; setPlaying(false); draw(); drawTraces(); readouts();
   }
+  /* Whatever the wiring did on the way up, the replay begins at the start and
+     running. Without this the page can come up already at TMAX and paused. */
+  T = 0; setPlaying(true); readouts();
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-10 · 2188d3d1</p>
+<p class="buildstamp">build 2026-11-10 · 2068f416</p>
 </body>
 </html>
