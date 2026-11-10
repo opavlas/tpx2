@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="26ce9884">
+<meta name="build" content="f9670e10">
 <meta name="build-date" content="2026-11-10">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -349,6 +349,24 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
        the world view's 2.9:1 would open the view to 254 deg of longitude just to
        fill the width, which is not a zoom. The aspect is clamped so the frame
        stays a map rather than becoming a column. */
+    /* Do not zoom closer than the field can resolve. The CARI-7A grid is
+       2.5 deg lat x 5 deg lon, so a 250 km hop like VIE->PRG fits inside ONE
+       cell: the map became a flat wash with the coastline a few crude strokes,
+       which reads as a broken map rather than as a short flight. Four cells each
+       way is the floor at which the gradient is visible and the geography is
+       recognisable; the track is then small, which is honest -- it IS small.
+       Clamp each axis on its own: scaling the other to hold the aspect blew
+       MUC->CPT, which is narrow and 82 deg tall, out to 226 deg wide. The aspect
+       clamp below reconciles them anyway. */
+    var MIN_LONW = 4 * 5.0, MIN_LATH = 4 * 2.5;
+    var trackW = lonw;                        // before any widening, for recentring
+    if (lonw < MIN_LONW) { lonw = MIN_LONW; }
+    if (lath < MIN_LATH) { lath = MIN_LATH; }
+    /* lon0 was offset for breathing room around the ORIGINAL width. Once the view
+       is widened to the field's resolution that offset is far too small and the
+       track hugs the left edge, so put the extra width on both sides instead. */
+    lon0 -= (lonw - trackW) / 2;
+
     var ar = Math.max(AR_MIN, Math.min(AR_MAX, lonw / lath));
     if (lonw / lath < ar) lonw = lath * ar; else lath = lonw / ar;
     if (lath > 170) { lath = 170; lonw = lath * ar; }
@@ -1440,6 +1458,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-10 · 26ce9884</p>
+<p class="buildstamp">build 2026-11-10 · f9670e10</p>
 </body>
 </html>
