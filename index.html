@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="2068f416">
+<meta name="build" content="095c1763">
 <meta name="build-date" content="2026-11-10">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1269,7 +1269,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     chips.push({ key: key, btn: b });
     return b;
   }
-  mkChip(null, "All three", "#E0A33B");
+  mkChip(null, "All legs", "#E0A33B");
   legs.forEach(function (L) { mkChip(L.key, L.short, L.col); });
 
   function select(key) {
@@ -1386,6 +1386,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     }).join(", ") + "), IGRF-2010 cutoffs, 2.5°×5° grid · " +
     "flown " + legs.map(function (l) { return l.flown; }).join(" / ") +
     ", replayed on one clock · " +
+    "measured/model falls with flight length — legs under 3 h average 1.13, over 8 h 0.76 (r = −0.75 over 12) — and the high ones also sit lower, mean altitude 8.0–8.4 km against 10.3–11.7; the ×0.76 silicon/phantom conversion is applied as one number and may not be constant with altitude · " +
     "SYD→LAX absolute rate carries a threshold offset — its ratio pools, its µGy/h does not · " +
     (D.heldout.length ? D.heldout : [D.heldout]).map(function (h) {
       return h.label + " held out \u2014 " + (h.why || "a fragment");
@@ -1438,6 +1439,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-10 · 2068f416</p>
+<p class="buildstamp">build 2026-11-10 · 095c1763</p>
 </body>
 </html>
