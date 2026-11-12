@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Two Timepix2 legs between Seattle and Fairbanks replayed frame by frame from the detector's own clock, with the 256x256 sensor beside the measured rate and no flight track yet to put under it.">
+<meta name="build" content="4e2ae12a">
+<meta name="build-date" content="2026-11-12">
+<title>Alaska, There and Back</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ───────────────────────────────────────────────────────────────────────────
+   Alaska, there and back — the third replay, and the one with no track.
+
+   Same world and the same single rule as the airliner and balloon pages:
+       SLATE  = a modelled quantity
+       AMBER  = a measured quantity
+   Both legs here are measured, so both traces are AMBER and leg identity is
+   carried by a third channel — panel accent, chip, and solid vs dashed — exactly
+   as the balloon page separates ASTRABAX from OURANOS.
+
+   The airliner page has a map because it has lat/lon. The balloon page has no
+   map because its logs have none, and makes altitude the axis instead. These two
+   legs have NEITHER yet: there is no ADS-B export for either flight, so there is
+   no position and no altitude. The axis that is left is the one the detector kept
+   for itself — its own counter, anchored on the session headers. The altitude
+   band is drawn empty rather than omitted, because the gap is the point: both
+   legs are finished and waiting for it.
+
+   Two legs rather than one because they are a matched pair — same chip, same
+   settings, same route, five days apart — and they do not agree. Putting them on
+   one page is the argument.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root{
+  --ground:#070B10; --ground-2:#0B1016;
+  --panel:#121A24;  --panel-2:#0F161E;
+  --rule:#22303D;   --rule-soft:#1A2531;
+  --ink:#E6EDF4;    --ink-2:#93A6B8; --ink-3:#64788A;
+  --amber:#E0A33B;  --amber-ink:#F3C85F; --amber-dim:#8C6520;
+  --slate:#7FA3BE;  --slate-dim:#4E6B83;
+  --out:#3C8CCB;    --back:#D4467E;     /* leg identity, never a data mark */
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.5;
+}
+h1,h2{font-family:Archivo,"Arial Narrow",system-ui,sans-serif;
+  margin:0; letter-spacing:-.015em; text-wrap:balance}
+.wrap{max-width:78rem; margin:0 auto; padding:1.2rem 1.5rem 4rem;
+  display:flex; flex-direction:column; gap:1.5rem}
+.mono{font-family:"IBM Plex Mono",monospace}
+
+.nav{display:flex; gap:.4rem; align-items:center; flex-wrap:wrap;
+  border-bottom:1px solid var(--rule); padding-bottom:.7rem}
+.nav a{font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.12em;
+  text-transform:uppercase; text-decoration:none; color:var(--ink-3);
+  border:1px solid var(--rule); border-radius:2px; padding:.4rem .75rem;
+  transition:color .15s,border-color .15s,background .15s}
+.nav a:hover{color:var(--ink); border-color:var(--amber-dim)}
+.nav a[aria-current="page"]{color:var(--amber-ink); border-color:var(--amber);
+  background:#101A22}
+.nav a:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:.7rem; font-weight:500;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--amber)}
+header{display:flex; align-items:flex-start; justify-content:space-between;
+  gap:1.25rem; flex-wrap:wrap}
+.masthead{min-width:0}
+.brand{flex:none; display:block; height:6rem; width:auto}
+@media (max-width:620px){.brand{height:4rem}}
+h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; margin-top:.4rem}
+.standfirst{color:var(--ink-2); max-width:64ch; margin:.7rem 0 0; font-size:.95rem}
+
+/* ── traces ─────────────────────────────────────────────────────────────── */
+.traces{display:flex; flex-direction:column; gap:.7rem}
+.trace{background:var(--ground-2); border:1px solid var(--rule); border-radius:3px;
+  border-left:2px solid var(--m); padding:.7rem .9rem .5rem;
+  display:flex; flex-direction:column; gap:.4rem}
+.trace .hd{display:flex; align-items:baseline; justify-content:space-between;
+  gap:1rem; flex-wrap:wrap}
+.trace .nm{font-family:Archivo,sans-serif; font-weight:600; font-size:.95rem; color:var(--m)}
+.trace .nm .sub{font-family:"IBM Plex Mono",monospace; font-size:.62rem; font-weight:400;
+  color:var(--ink-3); letter-spacing:0; margin-left:.5rem}
+.trace .key{font-family:"IBM Plex Mono",monospace; font-size:.6rem; color:var(--ink-3)}
+.trace canvas{display:block; width:100%; height:min(32vh,15rem); cursor:crosshair;
+  touch-action:none; user-select:none; -webkit-user-select:none}
+.trace.active{border-left-width:4px; background:#0C131B}
+
+.transport,.windows{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
+.windows{margin-top:-.9rem}
+.windows button{padding:.4rem .7rem}
+.windows button .fr{color:var(--ink-3); font-size:.62rem; margin-left:.35rem}
+.windows button[aria-pressed="true"] .fr{color:var(--amber-dim)}
+.windows button[disabled]{opacity:.38; cursor:not-allowed}
+.windows button[disabled]:hover{background:var(--panel); border-color:var(--rule)}
+.wnote{font-family:"IBM Plex Mono",monospace; font-size:.6rem; color:var(--ink-3);
+  margin-left:.2rem}
+.lbl{font-family:"IBM Plex Mono",monospace; font-size:.6rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-3); margin-right:.2rem}
+button{font-family:"IBM Plex Mono",monospace; font-size:.72rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink); background:var(--panel);
+  border:1px solid var(--rule); border-radius:2px; padding:.45rem .8rem;
+  cursor:pointer; transition:background .15s,border-color .15s}
+button:hover{background:var(--panel-2); border-color:var(--amber-dim)}
+button[aria-pressed="true"]{border-color:var(--amber); color:var(--amber-ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+.chip{display:inline-flex; align-items:center; gap:.45rem}
+.chip .sw{width:.6rem; height:.6rem; border-radius:50%; background:var(--m); flex:0 0 auto}
+button.chip[aria-pressed="true"]{border-color:var(--m); color:var(--ink); background:#101A22}
+button.chip[aria-pressed="false"] .sw{opacity:.4}
+input[type=range]{flex:1; min-width:12rem; accent-color:var(--amber);
+  background:transparent; cursor:pointer}
+.tclock{font-family:"IBM Plex Mono",monospace; font-size:.92rem; color:var(--amber-ink);
+  font-variant-numeric:tabular-nums; min-width:8.4rem}
+[hidden]{display:none!important}
+
+/* ── frame inspector ────────────────────────────────────────────────────── */
+.traces + .legs{margin-top:calc(.2rem - 1.5rem)}
+.insp{background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
+  border-top:2px solid var(--m); padding:.9rem 1rem;
+  display:flex; flex-direction:column; gap:.8rem}
+.insp .hd{display:flex; align-items:baseline; justify-content:space-between;
+  gap:1rem; flex-wrap:wrap}
+.insp .hd .t{font-family:Archivo,sans-serif; font-weight:600; font-size:.95rem; color:var(--m)}
+.insp .hd .s{font-family:"IBM Plex Mono",monospace; font-size:.6rem; color:var(--ink-3)}
+.insp .hd button{font-size:.6rem; padding:.2rem .5rem; margin-left:.4rem}
+.ibody{display:grid; grid-template-columns:min(58%,34rem) minmax(0,1fr);
+  gap:1.1rem; align-items:start}
+@media (max-width:820px){.ibody{grid-template-columns:1fr}}
+.iframe{display:flex; flex-direction:column; gap:.4rem}
+.ibody canvas{display:block; width:100%; aspect-ratio:1; background:#05080C;
+  border:1px solid var(--rule); image-rendering:pixelated; cursor:crosshair}
+.iside{min-width:0; display:flex; flex-direction:column; gap:.9rem}
+.istats{width:100%; display:flex; flex-direction:column; gap:.6rem; overflow-x:auto}
+.hint{font-family:"IBM Plex Mono",monospace; font-size:.62rem; color:var(--ink-3)}
+.ramp{display:flex; align-items:center; gap:.5rem; font-family:"IBM Plex Mono",monospace;
+  font-size:.58rem; color:var(--ink-3)}
+.ramp .bar{flex:1; height:7px; border:1px solid var(--rule);
+  background:linear-gradient(90deg,#0C0904,#5C380E,#E0A33B,#F7D686,#FFF6E2)}
+
+/* ── tables ─────────────────────────────────────────────────────────────── */
+.ledger{background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
+  padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.8rem}
+.ledger h2{font-size:.95rem; font-weight:600}
+table{border-collapse:collapse; width:100%; font-family:"IBM Plex Mono",monospace;
+  font-size:.72rem; font-variant-numeric:tabular-nums}
+th,td{text-align:right; padding:.35rem .45rem; border-bottom:1px solid var(--rule-soft)}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--ink-3); font-weight:500; font-size:.6rem; letter-spacing:.1em;
+  text-transform:uppercase; border-bottom:1px solid var(--rule)}
+td i{font-style:normal; color:var(--ink-3)}
+td.o{color:var(--out)} td.b{color:var(--back)}
+.istats table.pick td:first-child{color:var(--ink-3)}
+.istats table.pick td:last-child{color:var(--amber-ink)}
+.istats table.pick{border:1px solid var(--rule); border-radius:2px}
+.istats table.types td.box{width:1.7rem; text-align:center; padding-right:0}
+.istats table.types th.box{width:1.7rem}
+.istats table.types input{accent-color:var(--amber); cursor:pointer; margin:0;
+  vertical-align:middle}
+.istats table.types td.solo{cursor:pointer}
+.istats table.types td.solo:hover{color:var(--amber-ink)}
+.istats table.types tr.off td:not(.box){opacity:.32}
+.istats table.types tr.none td:not(.box){color:var(--ink-3)}
+.istats table.types tfoot td.solo{color:var(--amber-ink)}
+.caveats{font-size:.7rem; line-height:1.6; color:var(--ink-3); max-width:80ch}
+.caveats p{margin:0 0 .7rem}
+.caveats b{color:var(--ink-2); font-weight:600}
+details{border-top:1px solid var(--rule-soft); padding-top:.7rem}
+summary{cursor:pointer; font-family:"IBM Plex Mono",monospace; font-size:.68rem;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+summary:hover{color:var(--amber)}
+.scroll{overflow-x:auto; margin-top:.7rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>.buildstamp{max-width:78rem; margin:0 auto; padding:0 1.5rem 2.2rem; font-family:"IBM Plex Mono",monospace; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3)}</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a href="./">Airplane</a>
+    <a href="balloons.html">Stratospheric balloons</a>
+    <a href="alaska.html" aria-current="page">Alaska</a>
+  </nav>
+
+  <header>
+    <div class="masthead">
+      <div class="eyebrow">Timepix2 F7-W0016 · two legs · 23 019 frames</div>
+      <h1>Alaska, there and back</h1>
+      <p class="standfirst">Seattle to Fairbanks on 25 April 2026 and back on
+      30 April, played back frame by frame. Neither flight has an ADS-B export yet,
+      so there is no ground track and no altitude — the clock comes from the
+      detector's own per-frame counter, anchored on the session headers. Everything
+      else is finished, including the awkward part: the two legs do not agree.</p>
+    </div>
+    <img class="brand" src="ieap-ctu.png" alt="Institute of Experimental and Applied Physics, Czech Technical University in Prague">
+  </header>
+
+  <section class="traces" id="traces"></section>
+
+  <div class="legs transport" id="legs"><span class="lbl">Inspect</span></div>
+
+  <div class="transport">
+    <button id="play" aria-pressed="true">Pause</button>
+    <span class="tclock" id="tclock">00:00:00 UTC</span>
+    <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="Replay time">
+    <button id="speed">1 min / s</button>
+    <button id="loop" aria-pressed="true">Loop</button>
+    <button id="quant" aria-pressed="false">Show dose</button>
+  </div>
+
+  <div class="windows" id="windows">
+    <span class="lbl">Integrate</span>
+    <span class="wnote" id="wnote"></span>
+  </div>
+
+  <section class="insp" id="insp"></section>
+
+  <section class="ledger">
+    <h2>The two legs, side by side</h2>
+    <div class="scroll"><table id="cmp"><tbody></tbody></table></div>
+  </section>
+
+  <section class="caveats" id="caveats"></section>
+
+  <details>
+    <summary>Table view — the measured rate, 3-minute bins</summary>
+    <div class="scroll"><table id="dump">
+      <thead><tr><th>leg</th><th>t+ [min]</th><th>UTC</th><th>frames</th>
+        <th>flux [s⁻¹cm⁻²]</th><th>dose rate [µGy/h]</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </details>
+</div>
+
+<script src="csiro_frames.js"></script>
+<script>
+(function () {
+  "use strict";
+  var C = window.CSIRO;
+  if (!C) { document.getElementById("caveats").textContent =
+    "csiro_frames.js failed to load"; return; }
+  var LEGS = C.legs;
+
+  /* ── ramps, shared with the sibling pages ──────────────────────────────── */
+  var FRAMP = [[12, 9, 4], [92, 56, 14], [224, 163, 59], [247, 214, 134], [255, 246, 226]];
+  var ETOP = 120;                                   // keV per pixel at ramp top
+  function ramp(stops, u) {
+    u = u < 0 ? 0 : u > 1 ? 1 : u;
+    var f = u * (stops.length - 1), i = Math.min(Math.floor(f), stops.length - 2), k = f - i;
+    var a = stops[i], b = stops[i + 1];
+    return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  }
+
+  var PERIOD = 1.1021;                              // nominal s/frame, for labels
+  var TMAX = Math.max.apply(null, LEGS.map(function (L) { return L.span_h; }));
+  var T = 0, playing = true, loopOn = true, QUANT = "flux";
+  var SPEEDS = [0.5, 1, 2, 5], si = 1;
+  var WINS = [PERIOD, 5, 10, 30, 60, 120, 300, 600], wi = 4;
+  var TYPEOFF = {}, PICK = -1, INT = null, lastSig = "", INTKEY = "", DRAWNKEY = "";
+  var SELR = null;                                  // {leg, t0, t1} or null
+  var ACTIVE = 0;                                   // which leg the inspector shows
+
+  function leg() { return LEGS[ACTIVE]; }
+  function winLabel(w) { return w === PERIOD ? "1 frame" : (w < 60 ? w + " s" : (w / 60) + " min"); }
+  function winFrames(w) { return w === PERIOD ? 1 : Math.round(w / PERIOD); }
+  function savedWin() {
+    try {
+      var k = WINS.indexOf(parseFloat(window.localStorage.getItem("ak.win")));
+      return k >= 0 ? k : null;
+    } catch (e) { return null; }
+  }
+  function saveWin() {
+    try { window.localStorage.setItem("ak.win", String(WINS[wi])); } catch (e) {}
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function utc(L, tH) {
+    var d = new Date((L.t0_unix + tH * 3600) * 1000);
+    return pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + ":" + pad(d.getUTCSeconds());
+  }
+
+  /* ── integration ───────────────────────────────────────────────────────── */
+  function lower(L, tH) {
+    var FR = L.frames, lo = 0, hi = FR.length, mid;
+    while (lo < hi) { mid = (lo + hi) >> 1; if (FR[mid].t < tH) lo = mid + 1; else hi = mid; }
+    return lo;
+  }
+  var IDXBUF = new Int32Array(65536);
+  function integrate(L, t0H, t1H) {
+    var i0 = lower(L, t0H), i1 = lower(L, t1H + 1e-9);
+    var idx = IDXBUF, cls = [], i, j, c, k, FR = L.frames;
+    idx.fill(-1);
+    for (i = i0; i < i1; i++) {
+      for (j = 0; j < FR[i].cl.length; j++) {
+        c = FR[i].cl[j]; c._t = FR[i].t; c._f = FR[i].f;
+        var ci = cls.push(c) - 1;
+        for (k = 0; k < c.x.length; k++) idx[c.y[k] * 256 + c.x[k]] = ci;
+      }
+    }
+    return { idx: idx, cls: cls, leg: L,
+             nfr: Math.max(1, Math.round((t1H - t0H) * 3600 / PERIOD)),
+             t0: t0H, t1: t1H };
+  }
+
+  /* The ramp is quantised into a 256-step lookup and the frame written as one
+     ImageData. The sibling pages set fillStyle per lit pixel, which is fine for a
+     20 s window; a 10 min window here is ~12 000 pixels and that many style
+     changes drops the replay below 60 fps. Same ramp, same last-cluster-wins
+     ordering, same #05080C ground — only the write path differs. */
+  var LG = Math.log(1 + ETOP);
+  var LUT = (function () {
+    var t = new Uint8Array(256 * 3), i, c;
+    for (i = 0; i < 256; i++) {
+      c = ramp(FRAMP, i / 255);
+      t[i * 3] = c[0] | 0; t[i * 3 + 1] = c[1] | 0; t[i * 3 + 2] = c[2] | 0;
+    }
+    return t;
+  })();
+  var BG = (function () {
+    var b = new Uint8ClampedArray(256 * 256 * 4), i;
+    for (i = 0; i < b.length; i += 4) { b[i] = 5; b[i + 1] = 8; b[i + 2] = 12; b[i + 3] = 255; }
+    return b;
+  })();
+  var IMG = null;
+  function drawMatrix(cvs) {
+    var g = cvs.getContext("2d"), i, k, c, q, p, e;
+    if (!IMG) IMG = g.createImageData(256, 256);
+    var d = IMG.data;
+    d.set(BG);
+    for (i = 0; i < INT.cls.length; i++) {
+      c = INT.cls[i];
+      if (TYPEOFF[c.ty]) continue;
+      for (k = 0; k < c.x.length; k++) {
+        e = c.e[k]; if (e > ETOP) e = ETOP; if (e < 0) e = 0;
+        q = (Math.log(1 + e) / LG * 255) | 0;
+        p = ((255 - c.y[k]) * 256 + c.x[k]) * 4;
+        d[p] = LUT[q * 3]; d[p + 1] = LUT[q * 3 + 1]; d[p + 2] = LUT[q * 3 + 2];
+      }
+    }
+    g.putImageData(IMG, 0, 0);
+    if (PICK >= 0 && INT.cls[PICK] && !TYPEOFF[INT.cls[PICK].ty]) {
+      c = INT.cls[PICK];
+      var ax = Math.min.apply(null, c.x), bx = Math.max.apply(null, c.x);
+      var ay = Math.min.apply(null, c.y), by = Math.max.apply(null, c.y);
+      g.strokeStyle = "#5BE3C8"; g.lineWidth = 1;
+      g.strokeRect(ax - 2.5, 255 - by - 2.5, bx - ax + 5, by - ay + 5);
+    }
+  }
+
+  /* Every declared species gets a row, in clstrType order, whether or not this
+     interval happened to contain one. A table that changes shape between
+     intervals cannot be read across them. */
+  function allTypes() {
+    return Object.keys(C.type_name).sort(function (a, b) { return a - b; });
+  }
+  function typeRows() {
+    var n = {}, v = {}, i, c, t;
+    for (i = 0; i < INT.cls.length; i++) {
+      c = INT.cls[i];
+      n[c.ty] = (n[c.ty] || 0) + 1;
+      v[c.ty] = (v[c.ty] || 0) + c.vol;
+    }
+    var tot = INT.cls.length, totv = 0;
+    for (t in v) totv += v[t];
+    var keys = allTypes();
+    var anyOff = keys.some(function (k) { return !!TYPEOFF[k]; });
+    var rows = keys.map(function (k) {
+      var off = !!TYPEOFF[k], nm = C.type_name[k] || ("type " + k);
+      var nk = n[k] || 0, vk = v[k] || 0;
+      return "<tr class=\"ty" + (off ? " off" : "") + (nk ? "" : " none") + "\">" +
+        "<td class=\"box\"><input type=\"checkbox\" data-ty=\"" + k + "\"" +
+        (off ? "" : " checked") + " aria-label=\"show " + nm + "\"></td>" +
+        "<td class=\"solo\" data-ty=\"" + k + "\" title=\"show only this type\">" +
+        nm + " <i>" + (C.type_hint[k] || "") + "</i></td>" +
+        "<td>" + nk + "</td><td>" + (tot ? (100 * nk / tot).toFixed(1) : "0.0") + " %</td>" +
+        "<td>" + Math.round(vk) + "</td><td>" +
+        (totv ? (100 * vk / totv).toFixed(1) : "0.0") + " %</td></tr>";
+    });
+    var foot = anyOff
+      ? "<td class=\"solo\" data-ty=\"*\" title=\"show every type again\">all &middot; show all</td>"
+      : "<td>all</td>";
+    return "<table class=\"types\"><thead><tr><th class=\"box\"></th>" +
+      "<th>clstrType</th><th>n</th><th>share</th><th>&Sigma; keV</th><th>of energy</th>" +
+      "</tr></thead><tbody>" + rows.join("") + "</tbody><tfoot><tr><td class=\"box\"></td>" +
+      foot + "<td>" + tot + "</td><td>100 %</td><td>" + Math.round(totv) +
+      "</td><td>100 %</td></tr></tfoot></table>";
+  }
+  function pickRows() {
+    if (PICK < 0 || !INT.cls[PICK]) {
+      return "<p class=\"hint\">Click a track in the frame to identify it.</p>";
+    }
+    var c = INT.cls[PICK];
+    var kv = [["clstrType", (C.type_name[c.ty] || c.ty) + " (" + c.ty + ") &middot; " +
+                            (C.type_hint[c.ty] || "")],
+              ["clstrSize", c.sz + " px"],
+              ["clstrVolume", c.vol + " keV"],
+              ["clstrHeight", c.hgt + " keV (brightest pixel)"],
+              ["clstrLinearity", c.lin],
+              ["clstrLength", c.len + " &micro;m"],
+              ["theta", c.th + "&deg;"],
+              ["at", INT.leg.label + " frame " + c._f + " &middot; " +
+                     utc(INT.leg, c._t) + " UTC"]];
+    return "<table class=\"pick\"><tbody>" + kv.map(function (r) {
+      return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>";
+    }).join("") + "</tbody></table>";
+  }
+
+  /* ── inspector shell, built once; tables refreshed on a throttle ────────── */
+  var inspEl = document.getElementById("insp"), MCV = null, lastTables = -1e9;
+  function buildInsp() {
+    inspEl.innerHTML =
+      "<div class=\"hd\"><span class=\"t\" id=\"i-t\"></span>" +
+        "<span class=\"s\" id=\"i-s\"></span></div>" +
+      "<div class=\"ibody\">" +
+        "<div class=\"iframe\"><canvas width=\"256\" height=\"256\" " +
+          "aria-label=\"256 by 256 pixel detector frame\"></canvas>" +
+          "<div class=\"ramp\"><span>0</span><span class=\"bar\"></span>" +
+          "<span>&ge;" + ETOP + " keV / px (log)</span></div>" +
+          "<p class=\"hint\" id=\"i-hint\"></p></div>" +
+        "<div class=\"iside\"><div class=\"istats\" id=\"i-types\"></div>" +
+          "<div class=\"istats\" id=\"i-pick\"></div></div>" +
+      "</div>";
+    MCV = inspEl.querySelector("canvas");
+    MCV.addEventListener("click", function (e) {
+      var b = MCV.getBoundingClientRect();
+      var x = Math.round((e.clientX - b.left) / b.width * 256);
+      var y = 255 - Math.round((e.clientY - b.top) / b.height * 256);
+      var best = -1, r, dx, dy, xx, yy, ci;
+      for (r = 0; r <= 4 && best < 0; r++) {
+        for (dy = -r; dy <= r && best < 0; dy++) {
+          for (dx = -r; dx <= r && best < 0; dx++) {
+            xx = x + dx; yy = y + dy;
+            if (xx < 0 || xx > 255 || yy < 0 || yy > 255) continue;
+            ci = INT.idx[yy * 256 + xx];
+            if (ci >= 0 && !TYPEOFF[INT.cls[ci].ty]) best = ci;
+          }
+        }
+      }
+      PICK = best;
+      if (best >= 0) { playing = false; syncPlay(); }
+      updateInsp(true);
+    });
+    inspEl.addEventListener("change", function (e) {
+      var cb = e.target.closest ? e.target.closest("input[data-ty]") : null;
+      if (!cb) return;
+      var k = cb.getAttribute("data-ty");
+      if (cb.checked) delete TYPEOFF[k]; else TYPEOFF[k] = 1;
+      updateInsp(true);
+    });
+    inspEl.addEventListener("click", function (e) {
+      if (e.target && e.target.id === "unsel") { clearRange(); return; }
+      var td = e.target.closest ? e.target.closest("td.solo") : null;
+      if (!td) return;
+      var k = td.getAttribute("data-ty");
+      TYPEOFF = {};
+      if (k !== "*") allTypes().forEach(function (q) { if (q !== k) TYPEOFF[q] = 1; });
+      updateInsp(true);
+    });
+  }
+  function updateInsp(force) {
+    var L = INT.leg, win = WINS[wi], npx = 0, i;
+    for (i = 0; i < INT.cls.length; i++) npx += INT.cls[i].x.length;
+    inspEl.style.setProperty("--m", L.accent);
+    document.getElementById("i-t").textContent = L.label + " — " + (SELR
+      ? ((SELR.t1 - SELR.t0) * 60).toFixed(1) + " min brushed"
+      : (win === PERIOD ? "one frame" : winLabel(win) + " integrated"));
+    document.getElementById("i-s").innerHTML =
+      utc(L, INT.t0) + "&ndash;" + utc(L, INT.t1) + " UTC &middot; " + INT.nfr +
+      " frame" + (INT.nfr === 1 ? "" : "s") + " &middot; " + INT.cls.length +
+      " clusters &middot; " + npx + " lit px" +
+      (SELR ? " &middot; <button id=\"unsel\" type=\"button\">follow replay</button>" : "");
+    document.getElementById("i-hint").innerHTML =
+      "256 &times; 256 px &middot; 55 &micro;m pitch &middot; 500 &micro;m silicon " +
+      "&middot; 1.98 cm&sup2;. " + L.n_hot + " hot/saturated and " + L.n_noisy +
+      " noisy pixels masked out (hot includes the saturated set), as " +
+      "<span class=\"mono\">flight_dedx.py</span> masks them" + (L.n_burst ? ", plus " + L.n_burst + " burst frames dropped whole" : "") + ".";
+    var dk = INTKEY + "|" + PICK + "|" + Object.keys(TYPEOFF).join(",");
+    if (force || dk !== DRAWNKEY) { DRAWNKEY = dk; drawMatrix(MCV); }
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    var sig = PICK + "|" + INT.cls.length + "|" + ACTIVE;
+    if (force || now - lastTables > 140 || sig !== lastSig) {
+      lastTables = now; lastSig = sig;
+      document.getElementById("i-types").innerHTML = typeRows();
+      document.getElementById("i-pick").innerHTML = pickRows();
+    }
+  }
+
+  /* ── one trace panel per leg ───────────────────────────────────────────── */
+  var GRID = "rgba(214,230,242,.085)", ZERO = "rgba(214,230,242,.20)";
+  var UNIT = { flux: "s⁻¹cm⁻²", dose: "µGy/h" };
+  function smooth(a, w) {
+    var out = new Array(a.length), i, j, s, n, h = w >> 1;
+    for (i = 0; i < a.length; i++) {
+      s = 0; n = 0;
+      for (j = Math.max(0, i - h); j <= Math.min(a.length - 1, i + h); j++) { s += a[j]; n++; }
+      out[i] = s / n;
+    }
+    return out;
+  }
+  var tracesEl = document.getElementById("traces");
+  LEGS.forEach(function (L, k) {
+    L.sm = { flux: smooth(L.rate.flux, 3), dose: smooth(L.rate.dose, 3) };
+    var sec = document.createElement("section");
+    sec.className = "trace";
+    sec.style.setProperty("--m", L.accent);
+    sec.innerHTML = "<div class=\"hd\"><span class=\"nm\">" + L.route +
+      "<span class=\"sub\">" + L.flight + " &middot; " + L.date + "</span></span>" +
+      "<span class=\"key\">" + L.n_frames + " frames &middot; " +
+      L.span_h.toFixed(2) + " h &middot; " + L.n_clusters.toLocaleString("en-US") +
+      " clusters</span></div><canvas></canvas>";
+    tracesEl.appendChild(sec);
+    L.sec = sec; L.cv = sec.querySelector("canvas"); L.ctx = L.cv.getContext("2d");
+    bindBrush(L, k);
+  });
+
+  function drawTrace(L) {
+    var cv = L.cv, ctx = L.ctx;
+    var r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var W = r.width, H = r.height;
+    var ML = 54, MR = 14, MT = 30, ALT = 34, GAP = 7, MB = 30;
+    var pH = H - MT - MB - ALT - GAP;
+    ctx.clearRect(0, 0, W, H);
+    var vals = L.rate[QUANT], sm = L.sm[QUANT], i, g;
+    // one scale for BOTH legs, so the panels can be read against each other
+    var vmax = 0;
+    LEGS.forEach(function (Q) { Q.rate[QUANT].forEach(function (v) { if (v > vmax) vmax = v; }); });
+    vmax = vmax * 1.12 || 1;
+    var px = function (tMin) { return ML + (tMin / (TMAX * 60)) * (W - ML - MR); };
+    var py = function (v) { return MT + pH - (v / vmax) * pH; };
+
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.textBaseline = "middle";
+    var step = vmax > 1.4 ? 0.5 : 0.25;
+    ctx.textAlign = "right";
+    for (g = 0; g <= vmax; g += step) {
+      ctx.strokeStyle = g === 0 ? ZERO : GRID; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ML, py(g) + .5); ctx.lineTo(W - MR, py(g) + .5); ctx.stroke();
+      ctx.fillStyle = "#64788A"; ctx.fillText(g.toFixed(2), ML - 7, py(g));
+    }
+    ctx.fillStyle = "#93A6B8"; ctx.textAlign = "left";
+    ctx.fillText(UNIT[QUANT], ML, MT - 18);
+
+    L.runs.forEach(function (run, k) {
+      var x0 = px(run.t * 60);
+      var x1 = px(k + 1 < L.runs.length ? L.runs[k + 1].t * 60 : L.span_h * 60);
+      if (k % 2 === 1) {
+        ctx.fillStyle = "rgba(127,163,190,.045)";
+        ctx.fillRect(x0, MT, x1 - x0, pH);
+      }
+      if (k > 0) {
+        ctx.save(); ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = "rgba(127,163,190,.45)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x0 + .5, MT); ctx.lineTo(x0 + .5, MT + pH); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.fillStyle = "#64788A"; ctx.textAlign = "center";
+      ctx.fillText(run.name + " · " + run.readout_c + "°C", (x0 + x1) / 2, MT - 18);
+    });
+
+    ctx.fillStyle = "rgba(224,163,59,.30)";
+    for (i = 0; i < vals.length; i++) {
+      ctx.beginPath(); ctx.arc(px(L.rate.t[i]), py(vals[i]), 1.6, 0, 6.2832); ctx.fill();
+    }
+    ctx.save();
+    if (L.dash) ctx.setLineDash([7, 4]);
+    ctx.strokeStyle = "#E0A33B"; ctx.lineWidth = 2; ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (i = 0; i < sm.length; i++) {
+      if (i === 0) ctx.moveTo(px(L.rate.t[i]), py(sm[i]));
+      else ctx.lineTo(px(L.rate.t[i]), py(sm[i]));
+    }
+    ctx.stroke(); ctx.restore();
+
+    // the empty altitude band — drawn, not omitted
+    var ay = MT + pH + GAP, aw = px(L.span_h * 60) - ML;
+    ctx.strokeStyle = "rgba(127,163,190,.28)"; ctx.lineWidth = 1;
+    ctx.strokeRect(ML + .5, ay + .5, aw - 1, ALT - 1);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(ML, ay, aw, ALT); ctx.clip();
+    ctx.strokeStyle = "rgba(127,163,190,.10)";
+    for (g = -ALT; g < aw; g += 9) {
+      ctx.beginPath(); ctx.moveTo(ML + g, ay + ALT); ctx.lineTo(ML + g + ALT, ay); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle = "#4E6B83"; ctx.textAlign = "center";
+    ctx.fillText("ALTITUDE — NO ADS-B PROFILE YET", ML + aw / 2, ay + ALT / 2);
+
+    ctx.textAlign = "center"; ctx.fillStyle = "#64788A";
+    for (g = 0; g <= TMAX * 60 + 1; g += 30) {
+      ctx.strokeStyle = GRID;
+      ctx.beginPath(); ctx.moveTo(px(g) + .5, MT); ctx.lineTo(px(g) + .5, MT + pH); ctx.stroke();
+      if (g / 60 <= L.span_h) ctx.fillText(utc(L, g / 60), px(g), H - MB / 2 - 2);
+    }
+    ctx.fillStyle = "#4E6B83"; ctx.textAlign = "right";
+    ctx.fillText("t+ " + L.span_h.toFixed(2) + " h", W - MR, H - MB / 2 - 2);
+
+    // brushed interval, amber because what it selects is measured
+    if (SELR && SELR.leg === L.key) {
+      var sa = px(SELR.t0 * 60), sb = px(SELR.t1 * 60);
+      ctx.fillStyle = "rgba(224,163,59,.13)";
+      ctx.fillRect(sa, MT, Math.max(sb - sa, 1), pH);
+      ctx.strokeStyle = "rgba(224,163,59,.55)"; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sa + .5, MT); ctx.lineTo(sa + .5, MT + pH);
+      ctx.moveTo(sb + .5, MT); ctx.lineTo(sb + .5, MT + pH);
+      ctx.stroke();
+      ctx.fillStyle = "#F3C85F"; ctx.textAlign = "center";
+      ctx.fillText(((SELR.t1 - SELR.t0) * 60).toFixed(1) + " min selected",
+                   (sa + sb) / 2, MT + pH - 8);
+    } else if (ACTIVE === LEGS.indexOf(L) && T <= L.span_h) {
+      var xw0 = px(Math.max(0, T * 60 - WINS[wi] / 60)), xw1 = px(T * 60);
+      ctx.fillStyle = "rgba(224,163,59,.16)";
+      ctx.fillRect(xw0, MT, Math.max(1.5, xw1 - xw0), pH);
+    }
+    if (T <= L.span_h) {
+      var xh = px(T * 60);
+      ctx.strokeStyle = (ACTIVE === LEGS.indexOf(L) && !SELR) ? L.accent : "rgba(147,166,184,.35)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(xh + .5, MT - 4); ctx.lineTo(xh + .5, MT + pH + 3); ctx.stroke();
+    }
+  }
+  function drawTraces() { LEGS.forEach(drawTrace); }
+
+  /* ── brush: press, drag, release on either trace ───────────────────────── */
+  function bindBrush(L, k) {
+    var cv = L.cv, dragging = false, anchor = 0, moved = false;
+    var MIN_DRAG_H = 0.02;                  // 1.2 min — below this it was a click
+    function timeAt(e) {
+      var b = cv.getBoundingClientRect(), ML = 54, MR = 14;
+      var f = (e.clientX - b.left - ML) / (b.width - ML - MR);
+      return Math.max(0, Math.min(1, f)) * TMAX;
+    }
+    cv.addEventListener("pointerdown", function (e) {
+      dragging = true; moved = false; anchor = timeAt(e);
+      if (cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+      SELR = null; setActive(k, true); drawTraces();
+    });
+    cv.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var t = timeAt(e);
+      if (Math.abs(t - anchor) >= MIN_DRAG_H) {
+        moved = true;
+        SELR = { leg: L.key, t0: Math.min(anchor, t), t1: Math.min(Math.max(anchor, t), L.span_h) };
+        drawTraces();
+      }
+    });
+    function end(e) {
+      if (!dragging) return;
+      dragging = false;
+      var t = timeAt(e);
+      PICK = -1;
+      if (moved) {
+        SELR = { leg: L.key, t0: Math.min(anchor, t), t1: Math.min(Math.max(anchor, t), L.span_h) };
+      } else {
+        SELR = null; T = Math.min(t, L.span_h);
+      }
+      playing = false; syncPlay(); syncWin(); tick(0, true);
+    }
+    cv.addEventListener("pointerup", end);
+    cv.addEventListener("pointercancel", function () {
+      dragging = false; syncWin(); tick(0, true);
+    });
+  }
+  function clearRange() {
+    if (!SELR) return;
+    SELR = null; PICK = -1; syncWin(); tick(0, true);
+  }
+
+  /* ── leg chips ─────────────────────────────────────────────────────────── */
+  var legRow = document.getElementById("legs"), legBtns = [];
+  LEGS.forEach(function (L, k) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip";
+    b.style.setProperty("--m", L.accent);
+    b.innerHTML = "<span class=\"sw\"></span>" + L.label;
+    b.addEventListener("click", function () { setActive(k); });
+    legRow.appendChild(b); legBtns.push(b);
+  });
+  function setActive(k, quiet) {
+    if (ACTIVE !== k) { ACTIVE = k; PICK = -1; if (!quiet) SELR = null; }
+    legBtns.forEach(function (b, j) {
+      b.setAttribute("aria-pressed", j === ACTIVE ? "true" : "false");
+    });
+    LEGS.forEach(function (L, j) { L.sec.classList.toggle("active", j === ACTIVE); });
+    if (!quiet) { syncWin(); tick(0, true); }
+  }
+
+  /* ── integration windows ───────────────────────────────────────────────── */
+  var winRow = document.getElementById("windows"), wnote = document.getElementById("wnote");
+  var winBtns = WINS.map(function (w, k) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.innerHTML = winLabel(w) + (w === PERIOD ? "" :
+      "<span class=\"fr\">" + winFrames(w) + " fr</span>");
+    b.title = winFrames(w) + " frame" + (winFrames(w) === 1 ? "" : "s") +
+              " integrated into one image";
+    b.addEventListener("click", function () {
+      if (k === wi) return;
+      wi = k; PICK = -1; saveWin(); syncWin(); tick(0, true);
+    });
+    winRow.insertBefore(b, wnote);
+    return b;
+  });
+  function syncWin() {
+    winBtns.forEach(function (b, k) {
+      b.setAttribute("aria-pressed", (!SELR && k === wi) ? "true" : "false");
+      b.disabled = !!SELR;
+    });
+    if (SELR) {
+      wnote.textContent = "overridden — the brushed interval is the window " +
+        "(Esc, or click a trace, to follow the replay again)";
+      return;
+    }
+    var w = WINS[wi];
+    wnote.textContent = w === PERIOD
+      ? "one 1.0 s exposure — often empty, one or two tracks when not"
+      : winFrames(w) + " frames per image · shaded on the active trace";
+  }
+
+  /* ── transport ─────────────────────────────────────────────────────────── */
+  var playBtn = document.getElementById("play"), scrub = document.getElementById("scrub");
+  var speedBtn = document.getElementById("speed"), loopBtn = document.getElementById("loop");
+  var quantBtn = document.getElementById("quant"), clock = document.getElementById("tclock");
+  function syncPlay() {
+    playBtn.textContent = playing ? "Pause" : "Play";
+    playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+  }
+  playBtn.addEventListener("click", function () { playing = !playing; syncPlay(); });
+  loopBtn.addEventListener("click", function () {
+    loopOn = !loopOn; loopBtn.setAttribute("aria-pressed", loopOn ? "true" : "false");
+  });
+  speedBtn.addEventListener("click", function () {
+    si = (si + 1) % SPEEDS.length; speedBtn.textContent = SPEEDS[si] + " min / s";
+  });
+  quantBtn.addEventListener("click", function () {
+    QUANT = QUANT === "flux" ? "dose" : "flux";
+    quantBtn.textContent = QUANT === "flux" ? "Show dose" : "Show flux";
+    quantBtn.setAttribute("aria-pressed", QUANT === "dose" ? "true" : "false");
+    drawTraces();
+  });
+  scrub.addEventListener("input", function () {
+    clearRange();
+    T = (+scrub.value / 1000) * TMAX; playing = false; syncPlay(); PICK = -1; tick(0, true);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { clearRange(); }
+    else if (e.key === " ") { e.preventDefault(); clearRange(); playing = !playing; syncPlay(); }
+    else if (e.key === "ArrowRight") { clearRange(); T = Math.min(TMAX, T + PERIOD / 3600); playing = false; syncPlay(); tick(0, true); }
+    else if (e.key === "ArrowLeft") { clearRange(); T = Math.max(0, T - PERIOD / 3600); playing = false; syncPlay(); tick(0, true); }
+    else if (e.key === "1" || e.key === "2") { setActive(+e.key - 1); }
+  });
+
+  var last = 0;
+  function tick(ts, force) {
+    if (!force) {
+      var dt = last ? Math.min((ts - last) / 1000, 0.25) : 0;
+      last = ts;
+      if (playing) {
+        T += dt * SPEEDS[si] / 60;
+        if (T >= TMAX) { if (loopOn) T = 0; else { T = TMAX; playing = false; syncPlay(); } }
+      }
+    }
+    scrub.value = Math.round((T / TMAX) * 1000);
+    var L = leg();
+    var tShow = Math.min(T, L.span_h);
+    clock.textContent = utc(L, tShow) + " UTC";
+    var key = SELR ? "R" + SELR.leg + SELR.t0.toFixed(5) + "," + SELR.t1.toFixed(5)
+                   : "F" + ACTIVE + "," + tShow.toFixed(6) + "," + wi;
+    if (key !== INTKEY || !INT) {
+      INTKEY = key;
+      INT = SELR
+        ? integrate(LEGS.filter(function (Q) { return Q.key === SELR.leg; })[0], SELR.t0, SELR.t1)
+        : integrate(L, Math.max(0, tShow - WINS[wi] / 3600), tShow);
+    }
+    updateInsp(false);
+    drawTraces();
+    if (!force) requestAnimationFrame(tick);
+  }
+
+  /* ── comparison ledger, caveats, table view ────────────────────────────── */
+  (function () {
+    var A = LEGS[0], B = LEGS[1];
+    var rows = [
+      ["flight", A.flight + " · " + A.date, B.flight + " · " + B.date],
+      ["record", A.span_h.toFixed(3) + " h", B.span_h.toFixed(3) + " h"],
+      ["frames", A.n_frames.toLocaleString("en-US"), B.n_frames.toLocaleString("en-US")],
+      ["clusters kept", A.n_clusters.toLocaleString("en-US"), B.n_clusters.toLocaleString("en-US")],
+      ["lit pixels kept", A.n_pixels.toLocaleString("en-US"), B.n_pixels.toLocaleString("en-US")],
+      ["hot + saturated masked", A.n_hot, B.n_hot],
+      ["noisy pixels masked", A.n_noisy, B.n_noisy],
+      ["burst frames dropped", A.n_burst, B.n_burst],
+      ["MIP peak, filtered", "196.5 ± 3.4 keV", "183.5 ± 1.5 keV"],
+      ["cruise flux", "≈ 0.74 s⁻¹cm⁻²", "≈ 1.05 s⁻¹cm⁻²"]
+    ];
+    document.querySelector("#cmp tbody").innerHTML =
+      "<tr><th></th><th class=\"o\" style=\"text-align:right\">" + A.label +
+      "</th><th class=\"b\" style=\"text-align:right\">" + B.label + "</th></tr>" +
+      rows.map(function (r) {
+        return "<tr><td>" + r[0] + "</td><td class=\"o\">" + r[1] +
+               "</td><td class=\"b\">" + r[2] + "</td></tr>";
+      }).join("");
+  })();
+
+  document.getElementById("caveats").innerHTML =
+    "<p><b>No track, and nothing invented in its place.</b> There is no ADS-B export " +
+    "for either flight, so there is no map and no altitude. The clock is the " +
+    "detector's own: each run is anchored on its header stamp and every frame " +
+    "placed from TrackLab's per-frame counter at 12.2120 s per counter unit — a " +
+    "scale constant to five significant figures across four run gaps in three " +
+    "legs. FAI&rarr;SEA <i>needs</i> that: 205 frames inside " +
+    "<span class=\"mono\">test1_37</span> ran about ten times faster than the rest, " +
+    "and a fitted cadence would misplace everything after them by up to 3 minutes. " +
+    "Live exposure is 1.0 s per frame, the campaign convention.</p>" +
+    "<p><b>SEA&rarr;FAI starts late, FAI&rarr;SEA is complete.</b> The outbound " +
+    "detector was switched on nine minutes after the aircraft left the gate, so its " +
+    "record opens mid-climb. The return covers everything: 36 minutes on the ground " +
+    "at Fairbanks, the climb, cruise, descent, and 15 minutes on the ground at " +
+    "Seattle — so its altitude profile can be anchored at both ends.</p>" +
+    "<p><b>The return leg is dirty, and it bites the morphology.</b> 354 saturated " +
+    "stuck pixels on the chip edges, 358 burst frames and 5 whole-chip discharges — " +
+    "12.1 % of its clusters and 96.7 % of its deposited energy. 955 hot pixels carry " +
+    "61.7 % of all its pixel hits, against 104 on the outbound. Since a cluster is " +
+    "rejected if <i>any</i> of its pixels is hot, long tracks are hit hardest: " +
+    "straight tracks fall to 4.0 % of the filtered sample against 10.1 % outbound. " +
+    "Roughly 20 % relative of that is geometry, not physics.</p>" +
+    "<p><b>The two legs do not agree, and that is unresolved.</b> Same chip, same " +
+    "settings, same route, five days apart — yet the MIP peak differs by 7 % at " +
+    "3.5 sigma and the cruise flux by about 40 %, the latter a lower bound since the " +
+    "return masks far more away. The Landau most-probable value is a physical " +
+    "constant, so at least one of these legs is not on its nominal energy scale. " +
+    "Temperature is the obvious suspect and does not survive contact: all three " +
+    "CSIRO legs warm from ~30 &deg;C to ~52 &deg;C identically, yet only " +
+    "SEA&rarr;FAI drifts across its first run (174 &rarr; 211 keV) while the " +
+    "return's per-run peaks sit flat at 180 / 188 / 181 / 174. The profiles will " +
+    "settle how much of the flux gap is simply a different cruise altitude.</p>";
+
+  (function () {
+    var tb = document.querySelector("#dump tbody");
+    LEGS.forEach(function (L) {
+      L.rate.t.forEach(function (t, i) {
+        tb.insertAdjacentHTML("beforeend", "<tr><td>" + L.label + "</td><td>" +
+          t.toFixed(1) + "</td><td>" + utc(L, t / 60) + "</td><td>" + L.rate.nfr[i] +
+          "</td><td>" + L.rate.flux[i].toFixed(3) + "</td><td>" +
+          L.rate.dose[i].toFixed(2) + "</td></tr>");
+      });
+    });
+  })();
+
+  window.addEventListener("resize", drawTraces);
+  var sw = savedWin(); if (sw !== null) wi = sw;
+  buildInsp();
+  setActive(0, true);
+  syncWin();
+  speedBtn.textContent = SPEEDS[si] + " min / s";
+  syncPlay();
+  T = 1.50;                       // open mid-cruise on both legs
+  tick(0, true);
+  requestAnimationFrame(tick);
+})();
+</script>
+<p class="buildstamp">build 2026-11-12 · 4e2ae12a</p>
+</body>
+</html>
