@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="7f310b20">
+<meta name="build" content="4642030b">
 <meta name="build-date" content="2026-11-12">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -318,10 +318,16 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   if (!D) { document.getElementById("fieldname").textContent = "replay_data.js failed to load"; return; }
 
   /* ── projection ────────────────────────────────────────────────────────
-     Equirectangular, cropped to +/-62 deg. The tracks live inside +/-40, and
-     everything poleward of ~55 deg is the saturated plateau, so the crop costs
-     no structure and buys a 2.9:1 frame that sits better than a 2:1 world. */
-  var LAT_LIM = 62, AR = 360 / 124;              // the world frame: wide and short
+     Equirectangular, cropped to +/-70 deg. The crop exists because everything
+     poleward of ~55 deg is the saturated plateau, so cutting it costs no
+     structure and buys a frame wider than a 2:1 world.
+
+     It was +/-62 while the tracks all lived inside +/-40. The Alaska pair ends
+     at Fairbanks, 64.8 N, which that crop cut off the top of the world view --
+     the leg was drawn but its destination was not on the map. 70 puts FAI back
+     with ~5 deg of margin and still leaves a 2.6:1 frame. Anything added north
+     of here has to move it again. */
+  var LAT_LIM = 70, AR = 360 / 140;              // the world frame: wide and short
   var AR_MIN = 1.30, AR_MAX = 3.00;             // how far a zoomed frame may reshape
   var WORLD = { lon0: -180, lonw: 360, latTop: LAT_LIM, lath: 2 * LAT_LIM, ar: AR };
   var VIEW = { lon0: -180, lonw: 360, latTop: LAT_LIM, lath: 2 * LAT_LIM, ar: AR };
@@ -1466,6 +1472,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-12 · 7f310b20</p>
+<p class="buildstamp">build 2026-11-12 · 4642030b</p>
 </body>
 </html>
