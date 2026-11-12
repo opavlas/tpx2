@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="2e10ce28">
+<meta name="build" content="139b3cd4">
 <meta name="build-date" content="2026-11-12">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,12 +81,17 @@ h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; marg
 .mapbox{position:relative; font-size:0}
 .mapbox > *:not(canvas){font-size:1rem; line-height:1.35}
 .map{display:block}
-.badge{position:absolute; font-family:"IBM Plex Mono",monospace; font-size:.64rem;
-  letter-spacing:.07em; color:var(--ink-2); background:rgba(7,11,16,.76);
-  border:1px solid var(--rule-soft); padding:.3rem .5rem; border-radius:2px;
-  pointer-events:none; white-space:nowrap}
-.badge.tr{top:.55rem; right:.55rem; text-align:right}
-.badge.tl{top:.55rem; left:.55rem}
+/* What the field IS, and what you are looking at, sit ABOVE the map rather than
+   floating on it. As overlay badges they covered whatever track happened to run
+   under the top corners -- on a world view that is the North Pacific, i.e. most
+   of SYD-LAX. A caption bar costs ~1.1 rem of height and covers nothing. */
+.fieldbar{display:flex; align-items:baseline; justify-content:space-between;
+  gap:1rem; font-family:"IBM Plex Mono",monospace; font-size:.64rem;
+  letter-spacing:.07em; color:var(--ink-2); padding:.4rem .6rem;
+  background:var(--ground-2); border-bottom:1px solid var(--rule-soft)}
+.fieldbar #fieldname{min-width:0; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap}
+.fieldbar #extent{flex:none; color:var(--ink-3); white-space:nowrap}
 .clock{position:absolute; left:.55rem; bottom:.55rem; display:flex; gap:.9rem;
   align-items:flex-end; pointer-events:none}
 .ramp{display:flex; flex-direction:column; gap:.22rem;
@@ -233,7 +238,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   <nav class="nav">
     <a href="./" aria-current="page">Airplane</a>
     <a href="balloons.html">Stratospheric balloons</a>
-    <a href="alaska.html">Alaska</a>
   </nav>
 
   <header>
@@ -246,9 +250,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
 
   <div class="stage">
     <div class="mapbox" id="mapbox">
+    <div class="fieldbar">
+      <span id="fieldname"></span>
+      <span id="extent"></span>
+    </div>
     <canvas class="map" id="map"></canvas>
-    <div class="badge tl" id="fieldname"></div>
-    <div class="badge tr" id="extent"></div>
     <div class="clock">
       <div class="ramp">
         <b id="rampLabel">Model · dose rate</b>
@@ -1389,7 +1395,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
         h.span_h.toFixed(2) + ' h</td><td>' +
         (h.meas_uGy == null ? '\u2014' : h.meas_uGy.toFixed(2) + ' \u00b5Gy') + '</td><td>' +
         (h.d5_uGy == null ? '\u2014' : h.d5_uGy.toFixed(2) + ' \u00b5Gy') + '</td><td>' +
-        h.ratio.toFixed(2) + '</td></tr>';
+        (h.ratio == null ? '\u2014' : h.ratio.toFixed(2)) + '</td></tr>';
     }).join('');
 
   /* ── caveats — the page states its own limits ──────────────────────────── */
@@ -1459,6 +1465,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-12 · 2e10ce28</p>
+<p class="buildstamp">build 2026-11-12 · 139b3cd4</p>
 </body>
 </html>
