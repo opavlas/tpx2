@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="b79cc485">
-<meta name="build-date" content="2026-11-12">
+<meta name="build" content="c1843ebd">
+<meta name="build-date" content="2026-11-19">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1378,7 +1378,10 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
          why the ratios are comparable -- but the reader has to be told which is
          which, or the comparison is being made for them silently. */
       '<td><span class="dot" style="background:' + L.col + '"></span>' + L.short +
-      (/MiniPIX/.test(L.detector || "") ? '<span class="tag">MiniPIX</span>' : '') + '</td>' +
+      (/MiniPIX/.test(L.detector || "") ? '<span class="tag">MiniPIX</span>' : '') +
+      /* A converter on the sensor changes what the leg is measuring, so it is
+         tagged in the ledger the way a different instrument is. */
+      (/LiF/.test(L.detector || "") ? '<span class="tag">LiF converter</span>' : '') + '</td>' +
       '<td>' + L.flown + '</td><td>' + L.span_h.toFixed(2) + ' h</td>' +
       '<td>' + L.meas_uGy.toFixed(2) + ' µGy</td>' +
       '<td>' + L.d5_uGy.toFixed(2) + ' µGy</td>' +
@@ -1420,7 +1423,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     ", replayed on one clock · " +
     "measured/model falls with flight length — legs under 3 h average 1.13, over 8 h 0.76 (r = −0.75 over 12) — and the high ones also sit lower, mean altitude 8.0–8.4 km against 10.3–11.7; the ×0.76 silicon/phantom conversion is applied as one number and may not be constant with altitude · " +
     "SYD→LAX absolute rate carries a threshold offset — its ratio pools, its µGy/h does not · " +
-    "SEA→FAI and FAI→SEA are drawn but NOT pooled — same chip as LAX→SEA, and the two agree with each other to 3.5 % (0.71 / 0.68), but a 7 % offset between their MIP peaks is unexplained and a ratio must not be pooled across that · " +
+    "SEA→FAI and FAI→SEA are drawn but NOT pooled — same chip as LAX→SEA, and the two agree with each other to 3.5 % (0.71 / 0.68), but a 7 % offset between their MIP peaks is unexplained and a ratio must not be pooled across that · " +    "PRG→AUH LiF carries a lithium-fluoride neutron converter on the sensor — the only leg that does; at the standard cuts it shows no excess of heavy clusters (0.94 % against 1.00–1.12 % on bare legs) · " +
+    "its model curve uses CARI-7A's closest tabulated solar epoch, 05/2026, because the code's potential table stops there and a November 2026 date is clamped to it · " +
+
     (D.heldout.length ? D.heldout : [D.heldout]).map(function (h) {
       return h.label + " held out \u2014 " + (h.why || "a fragment");
     }).join(" \u00b7 ") + " \u00b7 ADS-B gaps interpolated" +
@@ -1472,6 +1477,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-12 · b79cc485</p>
+<p class="buildstamp">build 2026-11-19 · c1843ebd</p>
 </body>
 </html>
