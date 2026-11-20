@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="ffdde816">
+<meta name="build" content="ed66d099">
 <meta name="build-date" content="2026-11-20">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -105,6 +105,8 @@ h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; marg
 
 /* ── mission select ─────────────────────────────────────────────────────── */
 .missions{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center}
+.pickhint{font-family:"IBM Plex Mono",monospace; font-size:.6rem; color:var(--ink-3);
+  margin-left:.15rem}
 .missions .lbl{font-family:"IBM Plex Mono",monospace; font-size:.6rem;
   letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-right:.2rem}
 .chip{display:inline-flex; align-items:center; gap:.45rem}
@@ -270,7 +272,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     </div>
   </div>
 
-  <div class="missions" id="missions"><span class="lbl">Mission</span></div>
+  <div class="missions" id="missions"><span class="lbl">Mission</span><span class="pickhint">or click a track on the map</span></div>
 
   <div class="transport">
     <button id="play" aria-pressed="true">Pause</button>
@@ -670,7 +672,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
         ctx.moveTo(px(tr.lon[j - 1], W), py(tr.lat[j - 1], H));
         ctx.lineTo(px(tr.lon[j], W), py(tr.lat[j], H));
         ctx.strokeStyle = rgb(ramp(AMBER, tr.dose_s[j] / 1.7));
-        ctx.lineWidth = 2.6; ctx.lineCap = "round";
+        /* The hovered leg thickens, so that on a world view where tracks cross
+           it is unambiguous WHICH one a click would select. */
+        ctx.lineWidth = (HOVER === L.key) ? 4.4 : 2.6; ctx.lineCap = "round";
         ctx.stroke();
       }
 
@@ -691,6 +695,25 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
       ctx.fillStyle = rgb(ramp(AMBER, tr.dose_s[Math.min(i, n - 1)] / 1.7));
       ctx.fill();
     });
+
+    /* Name the leg under the pointer. The thickened trail says WHICH line is
+       live; this says which flight that line is, which is the thing the click
+       is actually about. */
+    if (HOVER !== null && HOVERPT) {
+      var HL = legs.filter(function (l) { return l.key === HOVER; })[0];
+      if (HL) {
+        ctx.font = "600 11px Archivo, system-ui, sans-serif";
+        var tw = ctx.measureText(HL.short).width + 12;
+        var lx = Math.min(Math.max(HOVERPT.x + 12, 2), W - tw - 2);
+        var ly = Math.min(Math.max(HOVERPT.y - 20, 2), H - 20);
+        ctx.fillStyle = "rgba(7,11,16,.86)";
+        ctx.fillRect(lx, ly, tw, 17);
+        ctx.strokeStyle = HL.col; ctx.lineWidth = 1;
+        ctx.strokeRect(lx + .5, ly + .5, tw - 1, 16);
+        ctx.fillStyle = HL.col; ctx.textBaseline = "middle";
+        ctx.fillText(HL.short, lx + 6, ly + 9);
+      }
+    }
   }
 
   /* ── instruments ───────────────────────────────────────────────────────── */
@@ -1304,6 +1327,50 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   mkChip(null, "All legs", "#E0A33B");
   legs.forEach(function (L) { mkChip(L.key, L.short, L.col); });
 
+  /* ── picking a leg off the map ──────────────────────────────────────────
+     The chips are the keyboard path and stay the canonical control; this is the
+     direct one. There is no inverse projection to write: px()/py() are cheap, so
+     the test just projects each visible track and takes the nearest point.
+
+     It hit-tests ONLY the drawn part of the trail -- up to the playhead, skipping
+     dropouts -- because a reader should not be able to select a line that is not
+     on screen yet. */
+  var HOVER = null, HOVERPT = null, HIT_PX = 14;
+
+  function mapPos(ev) {
+    var r = cv.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) * (W / r.width),
+             y: (ev.clientY - r.top) * (H / r.height) };
+  }
+  function hitLeg(p) {
+    var best = null, bestD = HIT_PX * HIT_PX;
+    visible().forEach(function (L) {
+      var tr = L.track, n = tr.t.length, upto = Math.min(at(tr.t, T) + 1, n - 1), j, dx, dy, d;
+      for (j = 0; j <= upto; j++) {
+        if (j > 0 && tr.gap[j]) continue;
+        dx = px(tr.lon[j], W) - p.x; dy = py(tr.lat[j], H) - p.y;
+        d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; best = L; }
+      }
+    });
+    return best;
+  }
+  cv.addEventListener("pointermove", function (ev) {
+    var L = hitLeg(mapPos(ev)), k = L ? L.key : null;
+    cv.style.cursor = L ? "pointer" : "";
+    HOVERPT = L ? mapPos(ev) : null;
+    if (k !== HOVER || L) { HOVER = k; draw(); }
+  });
+  cv.addEventListener("pointerleave", function () {
+    if (HOVER !== null) { HOVER = null; HOVERPT = null; draw(); }
+    cv.style.cursor = "";
+  });
+  cv.addEventListener("click", function (ev) {
+    var L = hitLeg(mapPos(ev));
+    if (L) { if (L.key !== SEL) select(L.key); }
+    else if (SEL !== null) { select(null); }   // click the empty map to go back
+  });
+
   function select(key) {
     SEL = key;
     chips.forEach(function (c) {
@@ -1481,6 +1548,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-20 · ffdde816</p>
+<p class="buildstamp">build 2026-11-20 · ed66d099</p>
 </body>
 </html>
