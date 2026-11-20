@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="41f18c84">
-<meta name="build-date" content="2026-11-19">
+<meta name="build" content="ffdde816">
+<meta name="build-date" content="2026-11-20">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1423,7 +1423,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     ", replayed on one clock · " +
     "measured/model falls with flight length — legs under 3 h average 1.13, over 8 h 0.76 (r = −0.75 over 12) — and the high ones also sit lower, mean altitude 8.0–8.4 km against 10.3–11.7; the ×0.76 silicon/phantom conversion is applied as one number and may not be constant with altitude · " +
     "SYD→LAX absolute rate carries a threshold offset — its ratio pools, its µGy/h does not · " +
-    "SEA→FAI and FAI→SEA are drawn but NOT pooled — same chip as LAX→SEA, and the two agree with each other to 3.5 % (0.71 / 0.68), but a 7 % offset between their MIP peaks is unexplained and a ratio must not be pooled across that · " +    "PRG→AUH LiF carries a lithium-fluoride neutron converter on the sensor — the only leg that does, and NO neutron signal is visible: normalised to each leg's own MIP tracks, which cancels exposure and flux, its 1.6–2.4 MeV small-cluster rate is 3.35 per 1000 against 2.78–3.82 on three bare legs of the same chip · " +
+    "SEA→FAI and FAI→SEA are drawn but NOT pooled — same chip as LAX→SEA, and the two agree with each other to 3.5 % (0.71 / 0.68), but a 7 % offset between their MIP peaks is unexplained and a ratio must not be pooled across that · " +
+    "Two legs carry a lithium-fluoride neutron converter on the sensor, and AUH→SYD LiF was flown as the control for it — same chip, same threshold, same route as the bare AUH→SYD. NO neutron excess survives that test: normalised to each leg's own MIP tracks, the small-cluster rate at the ⁶Li(n,α) energy is 1.8x the bare leg on the AUH→SYD pair but 0.8x on the PRG→AUH pair, and three bare legs scatter across the same range by themselves · " +
+    
     "what does differ is a 3–4x deficit of long tracks (>80 px clusters 3.1 per 1000 MIP against 10.3–14.0; straight tracks 2.8 % against 6.8–8.5 %), which on the same chip at the same threshold points at mounting or shielding geometry, not at the converter · " +
 
     "its model curve uses CARI-7A's closest tabulated solar epoch, 05/2026, because the code's potential table stops there and a November 2026 date is clamped to it · " +
@@ -1479,6 +1481,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-19 · 41f18c84</p>
+<p class="buildstamp">build 2026-11-20 · ffdde816</p>
 </body>
 </html>
