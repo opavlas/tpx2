@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="ed66d099">
-<meta name="build-date" content="2026-11-20">
+<meta name="build" content="2885252e">
+<meta name="build-date" content="2026-11-23">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html{font-size:16px}
+html{font-size:16px; -webkit-text-size-adjust:100%}
 body{
   margin:0; background:var(--ground); color:var(--ink);
   font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -230,6 +230,47 @@ summary:hover{color:var(--amber)}
 code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-ink);
   background:#101A22; border:1px solid var(--rule-soft); border-radius:2px; padding:0 .3em}
 .scroll{overflow-x:auto; margin-top:.7rem}
+/* ── small screens ──────────────────────────────────────────
+   Four things actually broke at 390 px, and this fixes those rather than
+   restyling the page: the gutters ate a tenth of the width; the wide tables
+   squeezed their columns into vertical word-stacks instead of scrolling,
+   because width:100% inside an overflow box can never overflow; the scrubber's
+   12rem floor made it the widest item in the transport row and pushed the
+   buttons past the edge; and the brand mark crowded the title. */
+@media (max-width:620px){
+  .wrap{padding:.9rem .8rem 2.5rem; gap:1.1rem}
+  header{gap:.7rem}
+  h1{font-size:1.5rem; margin-top:.25rem}
+  .eyebrow{font-size:.62rem; letter-spacing:.14em}
+  .nav{gap:.3rem; padding-bottom:.55rem}
+  .nav a{font-size:.6rem; padding:.35rem .55rem}
+  .fieldbar{flex-wrap:wrap; gap:.2rem .6rem}
+  .missions{gap:.4rem}
+  .transport{gap:.5rem}
+  .tclock{font-size:.85rem; min-width:4.2rem}
+  /* The slider takes a row of its own, last, so the buttons keep their order. */
+  input[type=range]{flex:1 0 100%; min-width:0; order:9}
+  button{padding:.4rem .62rem; font-size:.66rem; letter-spacing:.06em}
+  .trace{padding:.5rem .55rem .4rem}
+  .trace canvas{height:170px}
+  .trace .hd{flex-wrap:wrap; gap:.15rem .5rem}
+  .ledger,.insp{padding:.7rem .6rem}
+  /* Let the wide tables scroll inside their frame instead of compressing. */
+  .scroll table{width:auto}
+  #ledger{min-width:33rem}
+  #dump{min-width:46rem}
+  .scroll{-webkit-overflow-scrolling:touch}
+  th,td{padding:.35rem .4rem}
+  .istats table{width:auto; min-width:21rem}
+}
+@media (max-width:420px){
+  h1{font-size:1.32rem}
+  .brand{height:3.1rem}
+  .pickhint{flex-basis:100%; margin-left:0; margin-top:-.15rem}
+}
+/* A tap must not leave a track stuck in its hover state. The script ignores
+   touch pointers for hover; this stops iOS painting its own synthetic one. */
+@media (hover:none){.map{cursor:default!important}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <style>.buildstamp{max-width:78rem; margin:0 auto; padding:0 1.5rem 2.2rem; font-family:"IBM Plex Mono",monospace; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3)}</style>
@@ -282,6 +323,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     <button id="field" aria-pressed="false">Show cutoff</button>
     <button id="loop" aria-pressed="true">Loop</button>
     <button id="zoom" aria-pressed="true">Zoom to flight</button>
+    <button id="globe" aria-pressed="false">Globe</button>
   </div>
 
   <section class="traces" id="traces"></section>
@@ -341,6 +383,55 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   function ulon(lon) { return ((lon - VIEW.lon0) % 360 + 360) % 360; }
   function px(lon, w) { return ulon(lon) / VIEW.lonw * w; }
   function py(lat, h) { return (VIEW.latTop - lat) / VIEW.lath * h; }
+
+  /* ── the globe ──────────────────────────────────────────────
+     An orthographic projection of the same data — not a second map, and not a
+     library: the forward transform is six lines, and every geographic draw on
+     this page already goes through one pair of helpers, so the whole change is
+     making that pair return a POINT instead of two independent coordinates.
+
+     It earns the switch on the long legs. Flat, AUH→SYD bends like a banana and
+     SYD→LAX is cut in half by the antimeridian; on a sphere both are what they
+     physically are, near-great-circles, and the dateline stops existing. The
+     cost is the far hemisphere, which is why it is a switch and not a
+     replacement. */
+  var GLOBE = false, RAD = Math.PI / 180;
+  var GLON = 10, GLAT = 25;                  // the sub-viewer point
+  var GR = 1, GCX = 0, GCY = 0;              // disc radius and centre, set by resize()
+  var _sp = Math.sin(GLAT * RAD), _cp = Math.cos(GLAT * RAD);
+  function globeCam(lon, lat) {
+    GLON = ((lon + 180) % 360 + 360) % 360 - 180;
+    GLAT = Math.max(-88, Math.min(88, lat));
+    _sp = Math.sin(GLAT * RAD); _cp = Math.cos(GLAT * RAD);
+  }
+  function globeAR() { return stageEl && stageEl.clientWidth < 560 ? 1.02 : 1.42; }
+
+  /* ONE scratch point, reused. These loops run tens of thousands of times per
+     rebuild and allocating inside them is what turns a redraw into a stutter,
+     so read .x/.y out before the next call — the object is not yours to keep.
+     .v is false on the far side of the sphere, and every caller breaks its path
+     there rather than drawing the chord straight through the planet. */
+  var _P = { x: 0, y: 0, v: true };
+  function proj(lon, lat) {
+    if (!GLOBE) { _P.x = px(lon, W); _P.y = py(lat, H); _P.v = true; return _P; }
+    var dl = (lon - GLON) * RAD, sl = Math.sin(lat * RAD), cl = Math.cos(lat * RAD),
+        cd = Math.cos(dl);
+    _P.v = _sp * sl + _cp * cl * cd >= 0;              // cos c: the near hemisphere
+    _P.x = GCX + GR * cl * Math.sin(dl);
+    _P.y = GCY - GR * (_cp * sl - _sp * cl * cd);
+    return _P;
+  }
+  /* The mean DIRECTION of a set of points. The only honest centre for a track
+     that crosses the dateline, where averaging longitudes gives the antipode. */
+  function centroid(lons, lats) {
+    var x = 0, y = 0, z = 0, i, la, lo, c;
+    for (i = 0; i < lons.length; i++) {
+      la = lats[i] * RAD; lo = lons[i] * RAD; c = Math.cos(la);
+      x += c * Math.cos(lo); y += c * Math.sin(lo); z += Math.sin(la);
+    }
+    return { lon: Math.atan2(y, x) / RAD,
+             lat: Math.atan2(z, Math.sqrt(x * x + y * y)) / RAD };
+  }
 
   /* The tightest view containing every point, on the circle rather than the line:
      find the widest empty longitude gap and take its complement. */
@@ -455,8 +546,46 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
          + (g[y0 + 1][xa] * (1 - kx) + g[y0 + 1][xb] * kx) * ky;
   }
   var fieldCanvas = document.createElement("canvas");
+  function fieldLabels(s) {
+    document.getElementById("rampLabel").textContent = s.label;
+    document.getElementById("rampBar").style.background = cssRamp(SLATE);
+    document.getElementById("rampLo").textContent = s.lo.toFixed(s.dp);
+    document.getElementById("rampHi").textContent = s.hi.toFixed(s.dp) + " " + s.unit;
+    document.getElementById("fieldname").textContent = s.name;
+  }
+  /* Inverse orthographic, per pixel of a FIXED 360 px disc that is then upscaled
+     to whatever the canvas is. Not a shortcut: the CARI-7A grid is 2.5° × 5°, so
+     about 70 cells span the visible hemisphere and a 360 px raster already
+     oversamples the model fivefold. Rastering at device resolution would cost
+     four times as much and show nothing that is in the data. */
+  var GFIELD = 360;
+  function buildFieldGlobe(s) {
+    var N = GFIELD, R = N / 2, i, j, X, Y, r2, r, cc, u, la, lo, c, p;
+    fieldCanvas.width = N; fieldCanvas.height = N;
+    var fx = fieldCanvas.getContext("2d"), img = fx.createImageData(N, N), d = img.data;
+    for (j = 0; j < N; j++) {
+      Y = (R - (j + 0.5)) / R;
+      for (i = 0; i < N; i++) {
+        X = (i + 0.5 - R) / R;
+        r2 = X * X + Y * Y;
+        p = (j * N + i) * 4;
+        if (r2 > 1) { d[p + 3] = 0; continue; }          // space, left transparent
+        r = Math.sqrt(r2); cc = Math.sqrt(1 - r2);       // sin c = r, cos c = cc
+        if (r < 1e-9) { la = GLAT; lo = GLON; }
+        else {
+          u = cc * _sp + Y * _cp;                        // (Y sin c cos p1)/r, sin c = r
+          la = Math.asin(u < -1 ? -1 : u > 1 ? 1 : u) / RAD;
+          lo = GLON + Math.atan2(X * r, r * cc * _cp - Y * r * _sp) / RAD;
+        }
+        c = ramp(SLATE, (sample(s.g, la, lo) - s.lo) / (s.hi - s.lo));
+        d[p] = c[0]; d[p + 1] = c[1]; d[p + 2] = c[2]; d[p + 3] = 255;
+      }
+    }
+    fx.putImageData(img, 0, 0);
+  }
   function buildField() {
     var s = fieldSpec(), lat, i, j;
+    if (GLOBE) { buildFieldGlobe(s); fieldLabels(s); return; }
     // render only the visible latitude band, at grid resolution, then upscale
     var H = 248, W = F.nlon * 4;
     fieldCanvas.width = W; fieldCanvas.height = H;
@@ -471,11 +600,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
       }
     }
     fx.putImageData(img, 0, 0);
-    document.getElementById("rampLabel").textContent = s.label;
-    document.getElementById("rampBar").style.background = cssRamp(SLATE);
-    document.getElementById("rampLo").textContent = s.lo.toFixed(s.dp);
-    document.getElementById("rampHi").textContent = s.hi.toFixed(s.dp) + " " + s.unit;
-    document.getElementById("fieldname").textContent = s.name;
+    fieldLabels(s);
   }
 
   /* ── legs ──────────────────────────────────────────────────────────────── */
@@ -525,11 +650,17 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   /* A zoomed frame is nearly square, and at full page width that is ~900 px tall --
      enough to push the dose profile below the fold, which is the one thing the map
      exists to be read against. Cap the height and let the map narrow instead. */
-  function mapCap() { return Math.min(window.innerHeight * 0.50, 520); }
+  function mapCap() {
+    /* A flat frame is wide, and a tall one pushes the dose profile below the
+       fold — the one thing the map exists to be read against. A globe is nearly
+       square, so the same cap would shrink the planet instead; it gets more. */
+    return GLOBE ? Math.min(window.innerHeight * 0.62, 620)
+                 : Math.min(window.innerHeight * 0.50, 520);
+  }
 
   function resize() {
     if (typeof sizeTraces === "function") sizeTraces();
-    var avail = stageEl.clientWidth - 2, ar = VIEW.ar || AR;
+    var avail = stageEl.clientWidth - 2, ar = GLOBE ? globeAR() : (VIEW.ar || AR);
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = avail; H = W / ar;
     if (H > mapCap()) { H = mapCap(); W = H * ar; }
@@ -537,6 +668,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     cv.width = W * dpr; cv.height = H * dpr;
     cv.style.width = W + "px"; cv.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    GCX = W / 2; GCY = H / 2; GR = Math.min(W, H) * 0.46;
     buildField();
     buildBase();
     draw();
@@ -545,12 +677,13 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   /* A polyline in lon/lat, split wherever it crosses the antimeridian so the
      line never streaks back across the whole frame. */
   function routePath(g, lat, lon, n) {
-    var i, moved = false;
+    var i, moved = false, p, x, y;
     g.beginPath();
     for (i = 0; i < n; i++) {
-      if (moved && Math.abs(ulon(lon[i]) - ulon(lon[i - 1])) > 180) moved = false;
-      if (moved) g.lineTo(px(lon[i], W), py(lat[i], H));
-      else g.moveTo(px(lon[i], W), py(lat[i], H));
+      p = proj(lon[i], lat[i]); x = p.x; y = p.y;
+      if (GLOBE) { if (!p.v) { moved = false; continue; } }
+      else if (moved && Math.abs(ulon(lon[i]) - ulon(lon[i - 1])) > 180) moved = false;
+      if (moved) g.lineTo(x, y); else g.moveTo(x, y);
       moved = true;
     }
   }
@@ -562,6 +695,20 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      the planet loses the viewer's sense of where the new frame sits. The field
      raster is rebuilt each step of the flight, which is why it is kept short. */
   var ZOOM = true, zoomFrom = null, zoomTo = null, zoomT = 0, ZOOM_MS = 620;
+  var gFrom = null, gTo = null;
+  /* Where the globe should be looking: at the selected leg, or at all of them.
+     Subsampled to ~120 points per track because a centroid does not need 800,
+     and this runs on every selection. */
+  function globeTarget() {
+    var lo = [], la = [];
+    (ZOOM && SEL !== null
+       ? legs.filter(function (l) { return l.key === SEL; })
+       : visible()).forEach(function (L) {
+      var tr = L.track, st = Math.max(1, Math.floor(tr.t.length / 120)), i;
+      for (i = 0; i < tr.t.length; i += st) { lo.push(tr.lon[i]); la.push(tr.lat[i]); }
+    });
+    return lo.length ? centroid(lo, la) : { lon: GLON, lat: GLAT };
+  }
   function lerpView(a, b, u) {
     // interpolate the west edge the short way round, so a dateline view does not
     // unwind the long way across the Pacific
@@ -587,8 +734,13 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     v = copyView(v);
     zoomFrom = copyView(VIEW); zoomFrom.ar = v.ar;
     VIEW = copyView(VIEW); VIEW.ar = v.ar;
-    if (instant) { VIEW = v; zoomFrom = zoomTo = null; resize(); return; }
+    var gt = globeTarget();
+    if (instant) {
+      VIEW = v; zoomFrom = zoomTo = null; gFrom = gTo = null;
+      globeCam(gt.lon, gt.lat); resize(); return;
+    }
     zoomTo = v; zoomT = 0;
+    gFrom = { lon: GLON, lat: GLAT }; gTo = gt;
     resize();
   }
   function stepZoom(dt) {
@@ -597,7 +749,13 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     var e = zoomT < .5 ? 2 * zoomT * zoomT : 1 - Math.pow(-2 * zoomT + 2, 2) / 2;
     VIEW = lerpView(zoomFrom, zoomTo, e);
     VIEW.ar = zoomTo.ar;
-    if (zoomT >= 1) { VIEW = copyView(zoomTo); zoomFrom = zoomTo = null; }
+    if (gTo) {                       // rotate the short way round, as lerpView does
+      var dg = ((gTo.lon - gFrom.lon + 540) % 360) - 180;
+      globeCam(gFrom.lon + dg * e, gFrom.lat + (gTo.lat - gFrom.lat) * e);
+    }
+    if (zoomT >= 1) {
+      VIEW = copyView(zoomTo); zoomFrom = zoomTo = null; gFrom = gTo = null;
+    }
     buildField(); buildBase();
     return true;
   }
@@ -612,33 +770,73 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     base.width = W * dpr; base.height = H * dpr;
     var g = base.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.drawImage(fieldCanvas, 0, 0, W, H);
+    if (GLOBE) {
+      g.clearRect(0, 0, W, H);
+      g.drawImage(fieldCanvas, GCX - GR, GCY - GR, 2 * GR, 2 * GR);
+      g.beginPath(); g.arc(GCX, GCY, GR, 0, 6.2832);
+      g.strokeStyle = "rgba(226,238,248,.20)"; g.lineWidth = 1; g.stroke();
+    } else {
+      g.drawImage(fieldCanvas, 0, 0, W, H);
+    }
 
     // coastlines — a geographic reference, kept recessive
     g.strokeStyle = "rgba(226,238,248,.46)"; g.lineWidth = .85;
     D.coast.forEach(function (poly) {
-      var i, moved = false, plon;
+      var i, moved = false, plon, p, x, y, lo, la;
       g.beginPath();
       for (i = 0; i < poly.length; i += 2) {
-        var lo = poly[i], la = poly[i + 1];
-        if (la > VIEW.latTop + 4 || la < VIEW.latTop - VIEW.lath - 4) { moved = false; continue; }
-        if (moved && Math.abs(ulon(lo) - ulon(plon)) > 180) moved = false;
-        if (moved) g.lineTo(px(lo, W), py(la, H)); else g.moveTo(px(lo, W), py(la, H));
+        lo = poly[i]; la = poly[i + 1];
+        if (!GLOBE && (la > VIEW.latTop + 4 || la < VIEW.latTop - VIEW.lath - 4)) {
+          moved = false; continue;
+        }
+        p = proj(lo, la); x = p.x; y = p.y;
+        if (GLOBE) { if (!p.v) { moved = false; continue; } }
+        else if (moved && Math.abs(ulon(lo) - ulon(plon)) > 180) moved = false;
+        if (moved) g.lineTo(x, y); else g.moveTo(x, y);
         moved = true; plon = lo;
       }
       g.stroke();
     });
 
     // graticule
-    // graticule spacing follows the zoom, so a tight view is not left blank
     g.strokeStyle = "rgba(214,230,242,.10)"; g.lineWidth = .6;
-    var gs = VIEW.lonw > 180 ? 30 : VIEW.lonw > 90 ? 15 : VIEW.lonw > 40 ? 10 : 5, k;
-    for (k = Math.ceil((VIEW.latTop - VIEW.lath) / gs) * gs; k <= VIEW.latTop; k += gs) {
-      g.beginPath(); g.moveTo(0, py(k, H)); g.lineTo(W, py(k, H)); g.stroke();
-    }
-    for (k = 0; k <= VIEW.lonw; k += gs) {
-      var xg = k / VIEW.lonw * W;
-      g.beginPath(); g.moveTo(xg, 0); g.lineTo(xg, H); g.stroke();
+    var k;
+    if (GLOBE) {
+      /* On a sphere a meridian is not a straight line and a parallel is not a
+         horizontal one, so both are walked as polylines and cut at the limb.
+         Fixed 30° spacing: the globe does not zoom, so there is no empty view
+         for the adaptive spacing below to rescue. */
+      var t, moved2, pg;
+      for (k = -180; k < 180; k += 30) {
+        moved2 = false; g.beginPath();
+        for (t = -90; t <= 90; t += 2) {
+          pg = proj(k, t);
+          if (!pg.v) { moved2 = false; continue; }
+          if (moved2) g.lineTo(pg.x, pg.y); else g.moveTo(pg.x, pg.y);
+          moved2 = true;
+        }
+        g.stroke();
+      }
+      for (k = -60; k <= 60; k += 30) {
+        moved2 = false; g.beginPath();
+        for (t = -180; t <= 180; t += 2) {
+          pg = proj(t, k);
+          if (!pg.v) { moved2 = false; continue; }
+          if (moved2) g.lineTo(pg.x, pg.y); else g.moveTo(pg.x, pg.y);
+          moved2 = true;
+        }
+        g.stroke();
+      }
+    } else {
+      // graticule spacing follows the zoom, so a tight view is not left blank
+      var gs = VIEW.lonw > 180 ? 30 : VIEW.lonw > 90 ? 15 : VIEW.lonw > 40 ? 10 : 5;
+      for (k = Math.ceil((VIEW.latTop - VIEW.lath) / gs) * gs; k <= VIEW.latTop; k += gs) {
+        g.beginPath(); g.moveTo(0, py(k, H)); g.lineTo(W, py(k, H)); g.stroke();
+      }
+      for (k = 0; k <= VIEW.lonw; k += gs) {
+        var xg = k / VIEW.lonw * W;
+        g.beginPath(); g.moveTo(xg, 0); g.lineTo(xg, H); g.stroke();
+      }
     }
 
     // the planned route, faint, so the frame is never empty and the viewer can see
@@ -656,7 +854,10 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     if (!W) return;
     ctx.clearRect(0, 0, W, H);
     ctx.drawImage(base, 0, 0, W, H);
-    extent.textContent = VIEW.lonw > 355 ? "world"
+    extent.textContent = GLOBE
+      ? "globe · " + Math.abs(Math.round(GLAT)) + (GLAT < 0 ? "°S " : "°N ") +
+        Math.abs(Math.round(GLON)) + (GLON < 0 ? "°W" : "°E")
+      : VIEW.lonw > 355 ? "world"
       : Math.round(VIEW.lonw) + "° × " + Math.round(VIEW.lath) + "°";
 
     visible().forEach(function (L) {
@@ -664,13 +865,18 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
 
       // the measured trail: drawn only as far as the replay has got, and coloured
       // by the SMOOTHED dose so it reads as a field rather than Poisson noise
-      var upto = Math.min(i + 1, n - 1);
+      var upto = Math.min(i + 1, n - 1), ax, ay, q;
       for (j = 1; j <= upto; j++) {
-        if (Math.abs(ulon(tr.lon[j]) - ulon(tr.lon[j - 1])) > 180) continue;
         if (tr.gap[j]) continue;                      // never draw across a dropout
+        if (!GLOBE && Math.abs(ulon(tr.lon[j]) - ulon(tr.lon[j - 1])) > 180) continue;
+        q = proj(tr.lon[j - 1], tr.lat[j - 1]);
+        if (!q.v) continue;                           // the far side of the sphere
+        ax = q.x; ay = q.y;
+        q = proj(tr.lon[j], tr.lat[j]);
+        if (!q.v) continue;
         ctx.beginPath();
-        ctx.moveTo(px(tr.lon[j - 1], W), py(tr.lat[j - 1], H));
-        ctx.lineTo(px(tr.lon[j], W), py(tr.lat[j], H));
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(q.x, q.y);
         ctx.strokeStyle = rgb(ramp(AMBER, tr.dose_s[j] / 1.7));
         /* The hovered leg thickens, so that on a world view where tracks cross
            it is unambiguous WHICH one a click would select. */
@@ -686,7 +892,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
         la = tr.lat[i] + (tr.lat[i + 1] - tr.lat[i]) * k;
         lo2 = tr.lon[i] + dlon(tr.lon[i], tr.lon[i + 1]) * k;
       }
-      x = px(lo2, W); y = py(la, H);
+      var pm = proj(lo2, la);
+      if (!pm.v) return;              // the aircraft has gone round the back
+      x = pm.x; y = pm.y;
 
       ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 6.2832);
       ctx.fillStyle = "rgba(7,11,16,.85)"; ctx.fill();
@@ -1327,37 +1535,82 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   mkChip(null, "All legs", "#E0A33B");
   legs.forEach(function (L) { mkChip(L.key, L.short, L.col); });
 
-  /* ── picking a leg off the map ──────────────────────────────────────────
+  /* ── picking a leg off the map ──────────────────────────────────
      The chips are the keyboard path and stay the canonical control; this is the
-     direct one. There is no inverse projection to write: px()/py() are cheap, so
-     the test just projects each visible track and takes the nearest point.
+     direct one. There is no inverse projection to write: proj() is cheap, so the
+     test just projects each visible track and takes the nearest point — which
+     also gets the dateline and the globe's limb right for free, since it works
+     in exactly the coordinates the drawing does.
 
-     It hit-tests ONLY the drawn part of the trail -- up to the playhead, skipping
-     dropouts -- because a reader should not be able to select a line that is not
-     on screen yet. */
+     The WHOLE route is live, not only the flown part. buildBase already paints
+     every leg end to end as a faint planned line, so the rest of the track is on
+     screen from the first frame; making only the amber portion clickable meant
+     aiming at a line that was visibly there and getting nothing back. */
   var HOVER = null, HOVERPT = null, HIT_PX = 14;
+  var TOUCH_PX = 22;                   // a fingertip is not a mouse pointer
 
   function mapPos(ev) {
     var r = cv.getBoundingClientRect();
     return { x: (ev.clientX - r.left) * (W / r.width),
              y: (ev.clientY - r.top) * (H / r.height) };
   }
-  function hitLeg(p) {
-    var best = null, bestD = HIT_PX * HIT_PX;
+  function hitLeg(p, tol) {
+    var lim = tol || HIT_PX, best = null, bestD = lim * lim;
     visible().forEach(function (L) {
-      var tr = L.track, n = tr.t.length, upto = Math.min(at(tr.t, T) + 1, n - 1), j, dx, dy, d;
-      for (j = 0; j <= upto; j++) {
-        if (j > 0 && tr.gap[j]) continue;
-        dx = px(tr.lon[j], W) - p.x; dy = py(tr.lat[j], H) - p.y;
+      var tr = L.track, n = tr.t.length, j, q, dx, dy, d;
+      for (j = 0; j < n; j++) {
+        q = proj(tr.lon[j], tr.lat[j]);
+        if (!q.v) continue;                        // the far side of the sphere
+        dx = q.x - p.x; dy = q.y - p.y;
         d = dx * dx + dy * dy;
         if (d < bestD) { bestD = d; best = L; }
       }
     });
     return best;
   }
+
+  /* Dragging the globe. One disc radius of travel is a quarter turn, so the
+     sphere keeps up with the finger near the centre, where the eye is. A drag is
+     not a click: past DRAG_PX the gesture is a rotation and the click that
+     follows it is swallowed, or every spin would also change the selection. */
+  var DRAG = null, DRAGGED = false, DRAG_PX = 5, dragRAF = 0;
+  cv.addEventListener("pointerdown", function (ev) {
+    if (!GLOBE) return;
+    DRAG = { x: ev.clientX, y: ev.clientY, lon: GLON, lat: GLAT };
+    DRAGGED = false;
+    try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+  function endDrag(ev) {
+    if (!DRAG) return;
+    try { cv.releasePointerCapture(ev.pointerId); } catch (e) {}
+    DRAG = null;
+  }
+  cv.addEventListener("pointerup", endDrag);
+  cv.addEventListener("pointercancel", endDrag);
+
   cv.addEventListener("pointermove", function (ev) {
+    if (DRAG) {
+      var dx = ev.clientX - DRAG.x, dy = ev.clientY - DRAG.y;
+      if (Math.abs(dx) + Math.abs(dy) > DRAG_PX) DRAGGED = true;
+      if (DRAGGED) {
+        var deg = 90 / GR;
+        globeCam(DRAG.lon - dx * deg, DRAG.lat + dy * deg);
+        HOVER = null; HOVERPT = null;
+        /* A pointer can fire faster than the display refreshes, and a rotation
+           re-rasters the whole disc. Coalescing to one render per frame means a
+           fast drag drops redundant work instead of queueing it and lagging the
+           finger. */
+        if (!dragRAF) dragRAF = requestAnimationFrame(function () {
+          dragRAF = 0; buildField(); buildBase(); draw();
+        });
+      }
+      return;
+    }
+    /* No hover state from a finger: a tap would leave a track thickened and
+       named until the next tap somewhere else. Touch gets the click path only. */
+    if (ev.pointerType === "touch") return;
     var L = hitLeg(mapPos(ev)), k = L ? L.key : null;
-    cv.style.cursor = L ? "pointer" : "";
+    cv.style.cursor = L ? "pointer" : GLOBE ? "grab" : "";
     HOVERPT = L ? mapPos(ev) : null;
     if (k !== HOVER || L) { HOVER = k; draw(); }
   });
@@ -1366,9 +1619,12 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     cv.style.cursor = "";
   });
   cv.addEventListener("click", function (ev) {
-    var L = hitLeg(mapPos(ev));
+    if (DRAGGED) { DRAGGED = false; return; }      // that was a rotation
+    var touch = (ev.pointerType === "touch") || !ev.detail;
+    var L = hitLeg(mapPos(ev), touch ? TOUCH_PX : HIT_PX);
     if (L) { if (L.key !== SEL) select(L.key); }
-    else if (SEL !== null) { select(null); }   // click the empty map to go back
+    else if (SEL !== null) { select(null); }       // empty map to go back
+    if (HOVER !== null) { HOVER = null; HOVERPT = null; draw(); }
   });
 
   function select(key) {
@@ -1400,6 +1656,23 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     else if (ev.key >= "1" && ev.key <= String(legs.length)) select(legs[+ev.key - 1].key);
     else if (ev.key === " ") { ev.preventDefault(); playBtn.click(); }
     else return;
+  });
+
+  /* The switch. flyTo(..., true) is instant on purpose: tweening a flat frame
+     into a sphere would be an animation of nothing, so the projection changes at
+     once and only the camera that lands afterwards is eased. */
+  var globeBtn = document.getElementById("globe");
+  globeBtn.addEventListener("click", function () {
+    GLOBE = !GLOBE;
+    globeBtn.setAttribute("aria-pressed", GLOBE ? "true" : "false");
+    globeBtn.textContent = GLOBE ? "Flat map" : "Globe";
+    /* pan-y, not none: a horizontal drag spins the globe, a vertical one still
+       scrolls the page. On a phone the map fills most of the screen, and a canvas
+       that swallowed vertical drags would trap the reader on it. */
+    cv.style.touchAction = GLOBE ? "pan-y" : "";
+    cv.style.cursor = "";
+    HOVER = null; HOVERPT = null; DRAG = null; DRAGGED = false;
+    flyTo(targetView(), true);
   });
 
   var zoomBtn = document.getElementById("zoom");
@@ -1529,7 +1802,17 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
 
   buildField();
   recalcSpan();
-  window.addEventListener("resize", resize);
+  /* iOS Safari fires resize whenever its toolbars collapse or reappear — a
+     ~60 px height change and no layout change at all. Rebuilding the field raster
+     on every scroll tick made the page crawl on a phone, so a width change acts
+     at once and a height change only when it is big enough to re-shape the map. */
+  var _rw = -1, _rh = -1, _rt = null;
+  window.addEventListener("resize", function () {
+    var w = stageEl.clientWidth, h = window.innerHeight;
+    if (w === _rw && Math.abs(h - _rh) < 80) return;
+    _rw = w; _rh = h;
+    clearTimeout(_rt); _rt = setTimeout(resize, 90);
+  });
   resize();
   if (SEL) select(SEL);                 // sync chips, cards, ledger and span
   flyTo(targetView(), true);            // no fly-in on first paint
@@ -1548,6 +1831,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-20 · ed66d099</p>
+<p class="buildstamp">build 2026-11-23 · 2885252e</p>
 </body>
 </html>
