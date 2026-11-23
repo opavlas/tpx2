@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="2885252e">
+<meta name="build" content="629f5569">
 <meta name="build-date" content="2026-11-23">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -136,6 +136,18 @@ input[type=range]{flex:1; min-width:12rem; accent-color:var(--amber);
 .trace{background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
   border-left:2px solid var(--leg); padding:.6rem .8rem .5rem;
   display:flex; flex-direction:column; gap:.35rem}
+/* Each leg's panel folds to its header. Fourteen legs at 224 px of canvas each
+   is 3 000 px of scrolling before the reader reaches anything else, which on a
+   phone is the whole page. The toggle exists at every width — it is a real
+   control, not a media-query trick — but only the narrow layout starts folded. */
+.trace .hd{cursor:pointer; -webkit-user-select:none; user-select:none;
+  -webkit-tap-highlight-color:transparent}
+.trace .exp{display:inline-block; width:.75rem; color:var(--ink-3)}
+.trace .exp::before{content:"\25BE"}
+.trace.collapsed .exp::before{content:"\25B8"}
+.trace.collapsed canvas{display:none}
+.trace.collapsed .key{display:none}
+.trace .hd:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
 .trace .hd{display:flex; align-items:baseline; justify-content:space-between;
   gap:1rem; flex-wrap:wrap}
 .trace .hd .nm{font-family:Archivo,sans-serif; font-weight:600; font-size:.88rem;
@@ -251,6 +263,13 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   /* The slider takes a row of its own, last, so the buttons keep their order. */
   input[type=range]{flex:1 0 100%; min-width:0; order:9}
   button{padding:.4rem .62rem; font-size:.66rem; letter-spacing:.06em}
+  /* The two ramp legends are ~310 px wide and sat absolutely over a map that is
+     only ~140 px tall here — they covered a third of it. Below the canvas they
+     cover nothing and cost one short row. */
+  .clock{position:static; display:flex; gap:.6rem; padding:.45rem .55rem;
+    background:var(--ground-2); border-top:1px solid var(--rule-soft)}
+  .ramp{background:none; border:0; padding:0; flex:1 1 0; min-width:0}
+  .ramp .bar{width:auto}
   .trace{padding:.5rem .55rem .4rem}
   .trace canvas{height:170px}
   .trace .hd{flex-wrap:wrap; gap:.15rem .5rem}
@@ -395,7 +414,15 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      physically are, near-great-circles, and the dateline stops existing. The
      cost is the far hemisphere, which is why it is a switch and not a
      replacement. */
-  var GLOBE = false, RAD = Math.PI / 180;
+  var PHONE_Q = window.matchMedia ? window.matchMedia("(max-width:620px)") : null;
+  function isPhone() { return !!(PHONE_Q && PHONE_Q.matches); }
+
+  /* The small screen STARTS on the globe. A flat world frame is 2.57:1, which on
+     a 390 px phone is a 140 px strip, and fourteen tracks in 140 px is not a map
+     — it is a smear. The globe is square, so it uses the width a phone actually
+     has: ~320 px of planet instead of a 140 px band. The switch is in the
+     transport row either way, and the wide layout still opens flat. */
+  var GLOBE = isPhone(), RAD = Math.PI / 180;
   var GLON = 10, GLAT = 25;                  // the sub-viewer point
   var GR = 1, GCX = 0, GCY = 0;              // disc radius and centre, set by resize()
   var _sp = Math.sin(GLAT * RAD), _cp = Math.cos(GLAT * RAD);
@@ -989,7 +1016,8 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     w.className = "trace";
     w.style.setProperty("--leg", L.col);
     w.innerHTML =
-      '<div class="hd"><span class="nm">' + L.short +
+      '<div class="hd" role="button" tabindex="0" aria-expanded="true">' +
+      '<span class="nm"><span class="exp" aria-hidden="true"></span>' + L.short +
       ' <span class="unit">' + L.flown + ' · ' + L.span_h.toFixed(1) + ' h · max ' +
       L.alt_max_km.toFixed(1) + ' km · λ ' + L.geo_from.toFixed(0) + '→' +
       L.geo_to.toFixed(0) + '° · ' + L.meas_uGy.toFixed(1) + ' µGy measured</span></span>' +
@@ -1003,8 +1031,27 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     tracesEl.appendChild(w);
     L.trace = { wrap: w, cv: c, ctx: c.getContext("2d"),
                 base: document.createElement("canvas"),
-                off: w.querySelector("[data-off]"), w: 0, h: 0 };
+                off: w.querySelector("[data-off]"),
+                hd: w.querySelector(".hd"), w: 0, h: 0 };
+    L.trace.hd.addEventListener("click", function () { toggleTrace(L); });
+    L.trace.hd.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleTrace(L); }
+    });
   });
+
+  function setTraceOpen(L, open) {
+    L.trace.wrap.classList.toggle("collapsed", !open);
+    L.trace.hd.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  function toggleTrace(L) {
+    var opening = L.trace.wrap.classList.contains("collapsed");
+    setTraceOpen(L, opening);
+    /* A folded canvas has no width, so sizeTraces() skipped it and it was never
+       drawn. Size and draw it on the way open rather than waiting for a resize
+       that may never come. */
+    if (opening) { sizeTraces(); drawTraces(); }
+  }
+  if (isPhone()) legs.forEach(function (L) { setTraceOpen(L, false); });
 
   function traceScales() {
     var vis = visible(), ymax = 0;
@@ -1103,9 +1150,15 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   function sizeTraces() {
     var sc = traceScales();
     visible().forEach(function (L) {
-      var T0 = L.trace, r = T0.cv.getBoundingClientRect();
+      var T0 = L.trace;
+      if (T0.wrap.classList.contains("collapsed")) return;   // nothing to size
+      var r = T0.cv.getBoundingClientRect();
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      T0.w = Math.round(r.width) || 600; T0.h = 224;
+      T0.w = Math.round(r.width) || 600;
+      /* Height from the STYLESHEET, not a constant. The phone rule shortens the
+         canvas, and a backing store that disagrees with the CSS box scales the
+         whole plot vertically — a 224 px drawing squeezed into 170 px. */
+      T0.h = Math.round(r.height) || 224;
       T0.cv.width = T0.w * dpr; T0.cv.height = T0.h * dpr;
       T0.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       buildTrace(L, sc);
@@ -1636,6 +1689,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
       L.row.hidden = !shown(L);
       L.trace.wrap.hidden = !shown(L);
     });
+    /* Choosing one mission IS a request to look at it, so on a phone that leg's
+       panel opens itself rather than making the reader tap a second time. */
+    if (isPhone()) legs.forEach(function (L) {
+      setTraceOpen(L, SEL !== null && L.key === SEL);
+    });
     // the pooled footer is a three-leg statement; it has no meaning under a filter
     tf.hidden = SEL !== null;
     Array.prototype.forEach.call(dump.querySelectorAll("tr"), function (tr) {
@@ -1662,6 +1720,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      into a sphere would be an animation of nothing, so the projection changes at
      once and only the camera that lands afterwards is eased. */
   var globeBtn = document.getElementById("globe");
+  globeBtn.setAttribute("aria-pressed", GLOBE ? "true" : "false");
+  globeBtn.textContent = GLOBE ? "Flat map" : "Globe";
+  cv.style.touchAction = GLOBE ? "pan-y" : "";
   globeBtn.addEventListener("click", function () {
     GLOBE = !GLOBE;
     globeBtn.setAttribute("aria-pressed", GLOBE ? "true" : "false");
@@ -1811,6 +1872,10 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     var w = stageEl.clientWidth, h = window.innerHeight;
     if (w === _rw && Math.abs(h - _rh) < 80) return;
     _rw = w; _rh = h;
+    /* Turning a phone to landscape crosses the breakpoint. Panels folded for the
+       narrow layout must not stay folded in the wide one, where nothing offers
+       to unfold them. */
+    if (!isPhone()) legs.forEach(function (L) { setTraceOpen(L, true); });
     clearTimeout(_rt); _rt = setTimeout(resize, 90);
   });
   resize();
@@ -1831,6 +1896,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-23 · 2885252e</p>
+<p class="buildstamp">build 2026-11-23 · 629f5569</p>
 </body>
 </html>
