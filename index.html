@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="3d0362d4">
+<meta name="build" content="2bbec199">
 <meta name="build-date" content="2026-11-23">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -227,6 +227,27 @@ input[type=range]{flex:1; min-width:12rem; accent-color:var(--amber);
 .insp .hd button{font-size:.6rem; padding:.2rem .5rem; margin-left:.4rem}
 
 /* ── result ledger ──────────────────────────────────────────────────────── */
+/* ── instrument groups ───────────────────────────────────────
+   Two instruments on one page. They measure the same quantity against the same
+   model, which is why their ratios are comparable — but the Timepix2 Lite legs
+   ARE this campaign and the MiniPIX legs are the earlier archive it is read
+   against. That is structure, not a footnote, so each list is cut once and
+   labelled rather than left for the reader to reassemble from a tag per row. */
+.grouphd{display:flex; align-items:baseline; gap:.55rem; flex-wrap:wrap;
+  margin:.45rem 0 -.15rem}
+.grouphd:first-child{margin-top:0}
+.grouphd b{font-family:Archivo,"Arial Narrow",system-ui,sans-serif; font-weight:600;
+  font-size:.84rem; color:var(--ink)}
+.grouphd i{font-style:normal; font-family:"IBM Plex Mono",monospace; font-size:.58rem;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.grouphd::after{content:""; flex:1 1 2rem; height:1px; background:var(--rule)}
+.glbl{flex-basis:100%; font-family:"IBM Plex Mono",monospace; font-size:.58rem;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+  margin:.3rem 0 -.15rem}
+tr.grp td{background:var(--panel); color:var(--ink-2); text-align:left;
+  font-family:"IBM Plex Mono",monospace; font-size:.58rem; letter-spacing:.14em;
+  text-transform:uppercase; padding:.45rem .5rem}
+
 .ledger{background:var(--panel-2); border:1px solid var(--rule); border-radius:3px;
   padding:1.1rem 1.2rem; display:flex; flex-direction:column; gap:.9rem}
 h2{font-size:1.15rem; font-weight:600}
@@ -659,6 +680,24 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      The clock rescales to whatever is shown: with one leg selected the scrubber
      spans that leg alone, so a 11.7 h flight does not sit idle while a 13.7 h one
      finishes. Everything that reads a leg goes through shown(). */
+  /* Two instruments, in the order the page argues them: the campaign first,
+     then the archive it is compared against. famOf() is the ONLY place that
+     decides which is which, so the chips, the profiles and the ledger cannot
+     disagree about it. */
+  var FAMILIES = [
+    { id: "tpx2", name: "Timepix2 Lite",
+      sub: "500 \u00b5m Si \u00b7 this campaign" },
+    { id: "minipix", name: "MiniPIX",
+      sub: "300 \u00b5m Si \u00b7 earlier flights, same analysis" }
+  ];
+  function famOf(L) { return FAMILIES[/MiniPIX/.test(L.detector || "") ? 1 : 0]; }
+  function mkGroupHd(f) {
+    var d = document.createElement("div");
+    d.className = "grouphd";
+    d.innerHTML = "<b>" + f.name + "</b><i>" + f.sub + "</i>";
+    return d;
+  }
+
   var SEL = null;
   function shown(L) { return SEL === null || L.key === SEL; }
   function visible() { return legs.filter(shown); }
@@ -1025,6 +1064,8 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   var ALT_MAX = 13000;
 
   legs.forEach(function (L) {
+    var f = famOf(L);
+    if (!f.traceHd) { f.traceHd = mkGroupHd(f); tracesEl.appendChild(f.traceHd); }
     var w = document.createElement("div");
     w.className = "trace";
     w.style.setProperty("--leg", L.col);
@@ -1608,7 +1649,16 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     return b;
   }
   mkChip(null, "All legs", "#E0A33B");
-  legs.forEach(function (L) { mkChip(L.key, L.short, L.col); });
+  legs.forEach(function (L) {
+    var f = famOf(L);
+    if (!f.chipLbl) {
+      f.chipLbl = document.createElement("span");
+      f.chipLbl.className = "glbl";
+      f.chipLbl.textContent = f.name;
+      chiprow.appendChild(f.chipLbl);
+    }
+    mkChip(L.key, L.short, L.col);
+  });
   if (isPhone()) foldChips(true);
 
   /* ── picking a leg off the map ──────────────────────────────────
@@ -1717,6 +1767,13 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
       L.row.hidden = !shown(L);
       L.trace.wrap.hidden = !shown(L);
     });
+    /* A group heading with nothing under it is noise, so a family disappears
+       entirely when the filter leaves none of its legs showing. */
+    FAMILIES.forEach(function (f) {
+      var any = legs.some(function (L) { return shown(L) && famOf(L) === f; });
+      if (f.traceHd) f.traceHd.hidden = !any;
+      if (f.ledgerRow) f.ledgerRow.hidden = !any;
+    });
     /* Choosing one mission IS a request to look at it, so on a phone that leg's
        panel opens itself rather than making the reader tap a second time. */
     if (isPhone()) legs.forEach(function (L) {
@@ -1800,14 +1857,21 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   /* ── ledger ────────────────────────────────────────────────────────────── */
   var tb = document.querySelector("#ledger tbody"), tf = document.querySelector("#ledger tfoot");
   legs.forEach(function (L) {
+    var f = famOf(L);
+    if (!f.ledgerRow) {
+      f.ledgerRow = document.createElement("tr");
+      f.ledgerRow.className = "grp";
+      f.ledgerRow.innerHTML = '<td colspan="6">' + f.name + " \u00b7 " + f.sub + "</td>";
+      tb.appendChild(f.ledgerRow);
+    }
     var tr = document.createElement("tr");
     tr.innerHTML =
-      /* Two instruments share this table. A 300 um MiniPIX and a 500 um Timepix2
-         Lite measure the same quantity against the same model, which is exactly
-         why the ratios are comparable -- but the reader has to be told which is
-         which, or the comparison is being made for them silently. */
+      /* Two instruments share this table, and the reader has to be told which is
+         which or the comparison is being made for them silently -- but that is
+         now the group row's job, once per instrument, instead of a tag repeated
+         down seven consecutive rows. The LiF tag stays: it separates legs
+         WITHIN a group, which no heading can do. */
       '<td><span class="dot" style="background:' + L.col + '"></span>' + L.short +
-      (/MiniPIX/.test(L.detector || "") ? '<span class="tag">MiniPIX</span>' : '') +
       /* A converter on the sensor changes what the leg is measuring, so it is
          tagged in the ledger the way a different instrument is. */
       (/LiF/.test(L.detector || "") ? '<span class="tag">LiF converter</span>' : '') + '</td>' +
@@ -1927,6 +1991,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-23 · 3d0362d4</p>
+<p class="buildstamp">build 2026-11-23 · 2bbec199</p>
 </body>
 </html>
