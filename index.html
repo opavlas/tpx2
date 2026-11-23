@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="629f5569">
+<meta name="build" content="3d0362d4">
 <meta name="build-date" content="2026-11-23">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,7 +80,11 @@ h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; marg
   border-radius:3px; overflow:hidden; background:var(--ground-2)}
 .mapbox{position:relative; font-size:0}
 .mapbox > *:not(canvas){font-size:1rem; line-height:1.35}
-.map{display:block}
+/* Centre it. The canvas is only as wide as the frame's aspect allows, while
+   .mapbox is as wide as the caption bar, i.e. the full stage. A block element
+   narrower than its parent sits hard LEFT, which is what happens every time the
+   height cap shortens the frame — the map drifted off to one side. */
+.map{display:block; margin:0 auto}
 /* What the field IS, and what you are looking at, sit ABOVE the map rather than
    floating on it. As overlay badges they covered whatever track happened to run
    under the top corners -- on a world view that is the North Pacific, i.e. most
@@ -105,6 +109,13 @@ h1{font-size:clamp(1.8rem,3.6vw,2.7rem); font-weight:700; line-height:1.05; marg
 
 /* ── mission select ─────────────────────────────────────────────────────── */
 .missions{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center}
+/* Fourteen chips is five wrapped rows of buttons on a phone, above a map only a
+   few hundred pixels tall. They fold behind one button that names the current
+   selection; the wide layout shows them all, as before. */
+.chips{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center}
+.mtoggle{display:none}
+.mtoggle::after{content:"\25BE"; margin-left:.45rem; color:var(--ink-3)}
+.missions.folded .mtoggle::after{content:"\25B8"}
 .pickhint{font-family:"IBM Plex Mono",monospace; font-size:.6rem; color:var(--ink-3);
   margin-left:.15rem}
 .missions .lbl{font-family:"IBM Plex Mono",monospace; font-size:.6rem;
@@ -258,6 +269,9 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   .nav a{font-size:.6rem; padding:.35rem .55rem}
   .fieldbar{flex-wrap:wrap; gap:.2rem .6rem}
   .missions{gap:.4rem}
+  .mtoggle{display:inline-flex; align-items:center}
+  .chips{flex-basis:100%; gap:.4rem}
+  .missions.folded .chips{display:none}
   .transport{gap:.5rem}
   .tclock{font-size:.85rem; min-width:4.2rem}
   /* The slider takes a row of its own, last, so the buttons keep their order. */
@@ -332,7 +346,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     </div>
   </div>
 
-  <div class="missions" id="missions"><span class="lbl">Mission</span><span class="pickhint">or click a track on the map</span></div>
+  <div class="missions" id="missions"><span class="lbl">Mission</span><button class="mtoggle" id="mtoggle" aria-expanded="true">All legs</button><span class="pickhint">or click a track on the map</span><div class="chips" id="chips"></div></div>
 
   <div class="transport">
     <button id="play" aria-pressed="true">Pause</button>
@@ -417,12 +431,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   var PHONE_Q = window.matchMedia ? window.matchMedia("(max-width:620px)") : null;
   function isPhone() { return !!(PHONE_Q && PHONE_Q.matches); }
 
-  /* The small screen STARTS on the globe. A flat world frame is 2.57:1, which on
-     a 390 px phone is a 140 px strip, and fourteen tracks in 140 px is not a map
-     — it is a smear. The globe is square, so it uses the width a phone actually
-     has: ~320 px of planet instead of a 140 px band. The switch is in the
-     transport row either way, and the wide layout still opens flat. */
-  var GLOBE = isPhone(), RAD = Math.PI / 180;
+  /* The flat frame is the default at every width — it is the one the dose field
+     and the ledger are read against. The globe is a switch in the transport row,
+     and on a phone it is worth reaching for: a 2.57:1 world frame is only ~140 px
+     tall there, where the globe is square and fills the width. */
+  var GLOBE = false, RAD = Math.PI / 180;
   var GLON = 10, GLAT = 25;                  // the sub-viewer point
   var GR = 1, GCX = 0, GCY = 0;              // disc radius and centre, set by resize()
   var _sp = Math.sin(GLAT * RAD), _cp = Math.cos(GLAT * RAD);
@@ -1573,7 +1586,16 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   /* ── mission chips ──────────────────────────────────────────────────────
      Radio-like: one mission at a time, or all three. Keys 1/2/3 pick a leg and
      0 returns to all, which is what a speaker wants mid-talk. */
-  var mrow = document.getElementById("missions"), chips = [];
+  var mrow = document.getElementById("missions"),
+      chiprow = document.getElementById("chips"),
+      mtoggle = document.getElementById("mtoggle"), chips = [];
+  function foldChips(on) {
+    mrow.classList.toggle("folded", on);
+    mtoggle.setAttribute("aria-expanded", on ? "false" : "true");
+  }
+  mtoggle.addEventListener("click", function () {
+    foldChips(!mrow.classList.contains("folded"));
+  });
   function mkChip(key, label, col) {
     var b = document.createElement("button");
     b.className = "chip";
@@ -1581,12 +1603,13 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     b.setAttribute("aria-pressed", key === null ? "true" : "false");
     b.innerHTML = '<span class="sw"></span>' + label;
     b.addEventListener("click", function () { select(key); });
-    mrow.appendChild(b);
+    chiprow.appendChild(b);
     chips.push({ key: key, btn: b });
     return b;
   }
   mkChip(null, "All legs", "#E0A33B");
   legs.forEach(function (L) { mkChip(L.key, L.short, L.col); });
+  if (isPhone()) foldChips(true);
 
   /* ── picking a leg off the map ──────────────────────────────────
      The chips are the keyboard path and stay the canonical control; this is the
@@ -1685,6 +1708,11 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     chips.forEach(function (c) {
       c.btn.setAttribute("aria-pressed", c.key === SEL ? "true" : "false");
     });
+    /* The folded button has to say what is selected, or it is a control with no
+       readout. Choosing closes the list again: the choice is made. */
+    var selLeg = legs.filter(function (l) { return l.key === SEL; })[0];
+    mtoggle.textContent = selLeg ? selLeg.short : "All legs";
+    if (isPhone()) foldChips(true);
     legs.forEach(function (L) {
       L.row.hidden = !shown(L);
       L.trace.wrap.hidden = !shown(L);
@@ -1875,7 +1903,10 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
     /* Turning a phone to landscape crosses the breakpoint. Panels folded for the
        narrow layout must not stay folded in the wide one, where nothing offers
        to unfold them. */
-    if (!isPhone()) legs.forEach(function (L) { setTraceOpen(L, true); });
+    if (!isPhone()) {
+      legs.forEach(function (L) { setTraceOpen(L, true); });
+      foldChips(false);
+    }
     clearTimeout(_rt); _rt = setTimeout(resize, 90);
   });
   resize();
@@ -1896,6 +1927,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-23 · 629f5569</p>
+<p class="buildstamp">build 2026-11-23 · 3d0362d4</p>
 </body>
 </html>
