@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Three Timepix2 flights replayed over CARI-7A's simulated cosmic-ray dose field at 11 km, with measured-versus-model dose profiles and the detector frames behind them.">
-<meta name="build" content="5e672edb">
-<meta name="build-date" content="2026-11-23">
+<meta name="build" content="2bbec199">
+<meta name="build-date" content="2026-11-24">
 <title>Dose Field at 11 km</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -425,7 +425,7 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
      the leg was drawn but its destination was not on the map. 70 puts FAI back
      with ~5 deg of margin and still leaves a 2.6:1 frame. Anything added north
      of here has to move it again. */
-  var LAT_LIM = 74, AR = 360 / 148;              // the world frame: wide and short
+  var LAT_LIM = 70, AR = 360 / 140;              // the world frame: wide and short
   var AR_MIN = 1.30, AR_MAX = 3.00;             // how far a zoomed frame may reshape
   var WORLD = { lon0: -180, lonw: 360, latTop: LAT_LIM, lath: 2 * LAT_LIM, ar: AR };
   var VIEW = { lon0: -180, lonw: 360, latTop: LAT_LIM, lath: 2 * LAT_LIM, ar: AR };
@@ -1923,10 +1923,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
 
     "its model curve uses CARI-7A's closest tabulated solar epoch, 05/2026, because the code's potential table stops there and a November 2026 date is clamped to it · " +
 
-    "SYD→ANT is a FRAGMENT and its microgray columns are not a flight dose — 0.51 h of live time survives from a 13.65 h flight, in two pieces either side of a 6.77 h hole that is the Antarctic segment itself, so the aircraft’s 77.9°S point at 03:45 UTC was never measured; the recording stopped at 01:50 and was not restarted until 08:37, and most of the file being written at that moment never reached the card · " +
-
-    "SYD→ANT also ran its ToT clock at 10 MHz against the 50 MHz of the calibration taken on the same chip, a correction applied as a ×2.5 rescale of the ToT ticks because that is what puts its MIP peak on the campaign reference of 187.5 keV — the clock ratio alone would say ×5, the discrepancy is unexplained, and the coarser quantisation drops peripheral pixels, so its small-cluster and low-energy shares are NOT comparable with the other legs · " +
-
     (D.heldout.length ? D.heldout : [D.heldout]).map(function (h) {
       return h.label + " held out \u2014 " + (h.why || "a fragment");
     }).join(" \u00b7 ") + " \u00b7 ADS-B gaps interpolated" +
@@ -1995,6 +1991,6 @@ code{font-family:"IBM Plex Mono",monospace; font-size:.92em; color:var(--amber-i
   requestAnimationFrame(frame);
 })();
 </script>
-<p class="buildstamp">build 2026-11-23 · 5e672edb</p>
+<p class="buildstamp">build 2026-11-24 · 2bbec199</p>
 </body>
 </html>
